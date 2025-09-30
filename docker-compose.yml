@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    image: dayplanner:latest
+    container_name: dayplanner
+    ports:
+      - "${PORT:-8383}:8383"
+    volumes:
+      - dayplanner_data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      # Optional: set your location for sunrise/sunset icons
+      # - LATITUDE=40.7128
+      # - LONGITUDE=-74.0060
+    restart: unless-stopped
+volumes:
+  dayplanner_data:

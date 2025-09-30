@@ -1,0 +1,11 @@
+
+<div class="grid" id="block-grid">
+  <div class="muted">Time</div>
+  <div class="muted">Activity</div>
+  {% for b in plan.blocks %}
+    <div class="time">{{ b.time }} {% if sunrise and sunset %}{% if b.time >= sunrise and b.time < sunset %}☀️{% else %}🌙{% endif %}{% endif %}</div>
+    {% set time_key = b.time %}
+    {% set activity = b.activity %}
+    {% include "partials/block_cell.html" %}
+  {% endfor %}
+</div>

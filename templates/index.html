@@ -1,0 +1,116 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<div class="headerbar">
+  <div>
+    <div class="brand nowrap">Plan for {{ plan.date }} <span class="dot">•</span></div>
+    <nav class="small" aria-label="Day navigation" style="margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a class="button secondary sm" href="{{ url_for('index', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
+      <span class="muted">Planning</span>
+      <a class="button secondary sm" href="{{ url_for('index', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
+    </nav>
+  </div>
+  <form class="toolbar" hx-post="/settings" hx-target="#blocks" hx-swap="outerHTML">
+    <input type="hidden" name="date" value="{{ plan.date }}"/>
+    <label class="small nowrap">Start
+      <input type="time" name="start" value="{{ plan.start }}"/>
+    </label>
+    <label class="small nowrap">End
+      <input type="time" name="end" value="{{ plan.end }}"/>
+    </label>
+    <button type="submit" class="sm nowrap">Apply</button>
+  </form>
+</div>
+
+<div class="two-col">
+  <section id="blocks">
+    {% include "partials/blocks.html" %}
+  </section>
+  <aside>
+    <h4>Today's To‑Dos</h4>
+    <form class="todo-form" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <input name="text" placeholder="Add a todo (press Enter)"/>
+      <button type="submit" class="sm">Add</button>
+    </form>
+    <div id="todos">
+      {% include "partials/todos.html" %}
+    </div>
+    <p class="muted small">Tips: click a todo to prefill a block; Press Enter to set, Ctrl+Enter to clear; use Arrow Up/Down to move. Empty blocks are soft peach; filled are fresh lime.</p>
+  </aside>
+</div>
+
+<script>
+  // lightweight UX: click a todo to copy text into the last focused slot input
+  let lastInput = null;
+  document.addEventListener('focusin', (e) => {
+    if (e.target.matches('.slot input[name="text"]')) {
+      lastInput = e.target;
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.todo-pick')) {
+      const txt = e.target.getAttribute('data-text') || e.target.textContent;
+      if (lastInput) { lastInput.value = txt.trim(); lastInput.focus(); }
+    }
+  });
+
+  // Keyboard navigation and quick submit
+  let submitDirection = 'next'; // or 'prev'
+  document.addEventListener('keydown', (e) => {
+    const slot = e.target.closest('.slot');
+    if (!slot) return;
+
+    // Enter on slot container focuses its input
+    if (e.key === 'Enter' && e.target === slot) {
+      const input = slot.querySelector('input[name="text"]');
+      if (input) { input.focus(); e.preventDefault(); }
+    }
+
+    // Enter inside input submits the form
+    if (e.key === 'Enter' && e.target.matches('.slot input[name="text"]')) {
+      const form = e.target.closest('form');
+      if (form) {
+        submitDirection = e.shiftKey ? 'prev' : 'next';
+        e.preventDefault();
+        if (e.ctrlKey) {
+          // Ctrl+Enter clears
+          const clearBtn = form.querySelector('[hx-post="/block/clear"]');
+          if (clearBtn) clearBtn.click();
+        } else {
+          if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        }
+      }
+    }
+
+    // Arrow navigation between slots
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && slot) {
+      const slots = Array.from(document.querySelectorAll('#blocks .slot'));
+      const idx = slots.indexOf(slot);
+      let targetIdx = idx + (e.key === 'ArrowDown' ? 1 : -1);
+      if (targetIdx < 0) targetIdx = 0; if (targetIdx >= slots.length) targetIdx = slots.length - 1;
+      const target = slots[targetIdx];
+      if (target) { target.focus(); e.preventDefault(); }
+    }
+  });
+
+  // After a cell swaps (set or clear), move focus to next/prev slot's input for fast data entry
+  document.body.addEventListener('htmx:afterSwap', (evt) => {
+    const el = evt.target; // swap target
+    if (!(el && el.id && el.id.startsWith('cell-'))) return;
+    // Focus input inside swapped cell first (it may rerender)
+    const input = el.querySelector('input[name="text"]');
+    if (input) input.focus();
+    const slots = Array.from(document.querySelectorAll('#blocks .slot'));
+    const idx = slots.indexOf(el);
+    if (idx >= 0) {
+      const nextIdx = submitDirection === 'prev' ? Math.max(0, idx - 1) : Math.min(slots.length - 1, idx + 1);
+      const target = slots[nextIdx];
+      const tInput = target && target.querySelector('input[name="text"]');
+      if (tInput) tInput.focus();
+    }
+  });
+</script>
+
+{% endblock %}

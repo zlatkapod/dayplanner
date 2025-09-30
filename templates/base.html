@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Day Planner</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    /* Global light, minimal, warm theme */
+    :root {
+      color-scheme: light;
+      --scale: 0.86; /* slightly smaller overall for compact look */
+      --bg: #fffdf8;          /* warm off-white */
+      --text: #3b3226;        /* warm dark brown-gray */
+      --muted: #6e6e6e;
+      --accent: #ffb86b;      /* warm apricot */
+      --accent-strong: #ff9f40;
+      --border: #f2e6d9;      /* warm sand */
+    }
+    html, body { background: var(--bg); color: var(--text); }
+    a { color: #b36800; }
+    a:hover { color: #8a5100; }
+
+    main.container { padding-top: 12px; }
+    h1, h2, h3, h4 { margin: 0.2rem 0 0.4rem; color: var(--text); font-weight: 700; letter-spacing: 0.2px; }
+    section, aside { display:block; }
+
+    /* Layouts */
+    .two-col { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items:start; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    .grid { display: grid; grid-template-columns: 100px 1fr; gap: 8px; font-size: calc(1rem * var(--scale)); align-items:center; }
+    /* To‑do form stacked layout for better typing space */
+    .todo-form { display:flex; flex-direction: column; gap: 8px; }
+    .todo-form input[name="text"] { width: 100%; font-size: calc(0.9rem * var(--scale)); padding: 8px 10px; }
+    .todo-form button { align-self: flex-start; }
+    /* Make todo text smaller */
+    #todos .todo-item { font-size: calc(0.9rem * var(--scale)); }
+    #todos .todo-item .todo-pick { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+
+    /* Blocks */
+    .slot { padding: 8px; border-radius: 12px; border: 1px solid var(--border); transition: background-color .15s ease, border-color .15s ease; }
+    .slot.empty { background: #fff8f0; }
+    .slot.filled { background: #f7ffe6; border-color: #e0f2a7; }
+    .time { font-weight: 600; color: #6b5b3e; font-size: calc(0.92rem * var(--scale)); }
+
+    .muted { color: var(--muted); font-size: calc(0.88rem * var(--scale)); }
+
+    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap: nowrap; }
+    .headerbar { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px; margin-bottom: 10px; }
+
+    .brand { font-weight: 800; font-size: calc(1.2rem * var(--scale)); color: #b36800; letter-spacing: 0.5px; }
+    .brand .dot { color: var(--accent-strong); }
+
+    .block-actions { display:grid; grid-template-columns: 1fr auto auto; gap:8px; margin-top:8px; align-items:center; }
+    .block-actions input[name="text"] { min-width: 180px; font-size: calc(0.9rem * var(--scale)); padding: 8px 10px; }
+
+    .todo-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border:1px solid #fae3cc; border-radius:12px; background:#fffaf3; }
+
+    .nowrap { white-space: nowrap; }
+    .small { font-size: calc(0.82rem * var(--scale)); }
+    .clicky { cursor: pointer; }
+
+    /* Buttons: warm accents */
+    button, .button { background: var(--accent); border-color: var(--accent); color: #412300; }
+    button:hover, .button:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+    .button.secondary, button.secondary { background: transparent; border: 1px solid var(--border); color: #6b5b3e; }
+    .button.secondary:hover, button.secondary:hover { background: #fff3e0; }
+
+    button.sm { padding: 6px 10px; font-size: calc(0.85rem * var(--scale)); }
+
+    /* Input fields */
+    input[type="text"], input[type="time"], input:not([type]), textarea { background:#fff; border:1px solid var(--border); color: var(--text); }
+
+    /* Focus outline to aid keyboard nav */
+    .slot:focus-within { outline: 2px solid #ffd28a; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

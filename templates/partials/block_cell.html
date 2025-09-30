@@ -1,0 +1,15 @@
+
+<div id="cell-{{ time_key|replace(':','') }}" class="slot {{ 'filled' if activity else 'empty' }}" tabindex="0" role="group" aria-label="Block {{ time_key }}">
+  <form class="block-actions" hx-post="/block" hx-target="#cell-{{ time_key|replace(':','') }}" hx-swap="outerHTML">
+    <input type="hidden" name="date" value="{{ plan.date if plan is defined else '' }}"/>
+    <input type="hidden" name="time" value="{{ time_key }}"/>
+    <input name="text" placeholder="Describe activity…" value="{{ activity }}" />
+    <button type="submit" class="sm">Set</button>
+    <button class="secondary sm" hx-post="/block/clear" hx-include="closest form" hx-target="#cell-{{ time_key|replace(':','') }}" hx-swap="outerHTML" type="button">Clear</button>
+  </form>
+  {% if activity %}
+    <small class="muted">Scheduled: {{ activity }}</small>
+  {% else %}
+    <small class="muted">Empty</small>
+  {% endif %}
+</div>
