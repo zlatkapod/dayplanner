@@ -9,9 +9,10 @@ services:
       - dayplanner_data:/app/data
     environment:
       - DATA_DIR=/app/data
-      # Optional: set your location for sunrise/sunset icons
-      # - LATITUDE=40.7128
-      # - LONGITUDE=-74.0060
+      - LATITUDE=52.2777
+      - LONGITUDE=6.1730
+      - LOG_LEVEL=INFO
+      - TZ=${TZ:-Europe/Amsterdam}
     restart: unless-stopped
 volumes:
   dayplanner_data:

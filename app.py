@@ -4,13 +4,35 @@ import os, json
 from datetime import datetime, timedelta, timezone, date as date_cls, time as time_cls
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, abort
+import logging
 
+from zoneinfo import ZoneInfo
 from suntime import Sun, SunTimeException
 
 app = Flask(__name__)
 
+# Configure logging
+logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("dayplanner")
+
 DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Timezone helper ---
+
+def get_configured_tz() -> ZoneInfo:
+    """Return the timezone configured via TIMEZONE or TZ env vars.
+    Falls back to the system local timezone if neither is provided or invalid.
+    """
+    tz_name = (os.environ.get("TIMEZONE") or os.environ.get("TZ") or "").strip()
+    if tz_name:
+        try:
+            return ZoneInfo(tz_name)
+        except Exception:
+            logger.warning("Invalid TIMEZONE/TZ value %r; falling back to system local timezone.", tz_name)
+    # Fallback: use whatever the system considers local
+    return datetime.now().astimezone().tzinfo  # type: ignore[return-value]
+
 
 def date_str(d: date_cls) -> str:
     return d.strftime("%Y-%m-%d")
@@ -74,39 +96,51 @@ def get_sun_times(day: date_cls) -> tuple[str | None, str | None]:
     """Return (sunrise, sunset) as HH:MM local time strings for the given date.
     If LATITUDE/LONGITUDE env vars are not set or an error occurs, return (None, None).
     """
-    try:
-        lat = float(os.environ.get("LATITUDE", os.environ.get("LAT", "")))
-        lon = float(os.environ.get("LONGITUDE", os.environ.get("LON", "")))
-    except ValueError:
+    lat_raw = os.environ.get("LATITUDE", os.environ.get("LAT", ""))
+    lon_raw = os.environ.get("LONGITUDE", os.environ.get("LON", ""))
+    if not lat_raw or not lon_raw:
+        logger.info("Sun times disabled: LATITUDE/LONGITUDE not set (LAT=%r, LON=%r).", lat_raw, lon_raw)
         return (None, None)
-    except TypeError:
+    try:
+        lat = float(lat_raw)
+        lon = float(lon_raw)
+    except (ValueError, TypeError):
+        logger.warning("Invalid LATITUDE/LONGITUDE: LAT=%r LON=%r", lat_raw, lon_raw)
         return (None, None)
 
     try:
         sun = Sun(lat, lon)
-        # suntime returns naive UTC or aware UTC depending on version; normalize to aware UTC
-        sr_utc = sun.get_sunrise_time(day)
-        ss_utc = sun.get_sunset_time(day)
-        # Normalize to aware UTC
+        # Work around suntime expecting a datetime for timezone math in some versions
+        at_dt = datetime.combine(day, time_cls(12, 0))  # local noon on the given date (naive)
+        sr_utc = sun.get_sunrise_time(at_dt)
+        ss_utc = sun.get_sunset_time(at_dt)
         if sr_utc.tzinfo is None:
             sr_utc = sr_utc.replace(tzinfo=timezone.utc)
         if ss_utc.tzinfo is None:
             ss_utc = ss_utc.replace(tzinfo=timezone.utc)
-        local_tz = datetime.now().astimezone().tzinfo
+        local_tz = get_configured_tz()
         sr_local = sr_utc.astimezone(local_tz)
         ss_local = ss_utc.astimezone(local_tz)
         sunrise = sr_local.strftime("%H:%M")
         sunset = ss_local.strftime("%H:%M")
+        logger.info("Sun times for %s at (%.5f, %.5f): sunrise=%s sunset=%s tz=%s", date_str(day), lat, lon, sunrise, sunset, local_tz)
         return (sunrise, sunset)
-    except Exception:
-        # Covers SunTimeException and any edge cases (polar day/night)
+    except SunTimeException as e:
+        logger.warning("SunTimeException: %s (lat=%.5f lon=%.5f) for %s", e, lat, lon, date_str(day))
+        return (None, None)
+    except Exception as e:
+        logger.exception("Failed to compute sun times: %s", e)
         return (None, None)
 
 @app.route("/", methods=["GET"])
 def index():
     qdate = request.args.get("date")
     try:
-        day = datetime.strptime(qdate, "%Y-%m-%d").date() if qdate else datetime.now().date()
+        if qdate:
+            day = datetime.strptime(qdate, "%Y-%m-%d").date()
+        else:
+            # Use configured timezone for "today"
+            day = datetime.now(get_configured_tz()).date()
     except ValueError:
         abort(400, "Bad date format, expected YYYY-MM-DD")
     plan = load_plan(day)
@@ -178,5 +212,29 @@ def clear_block():
     sunrise, sunset = get_sun_times(day)
     return render_template("partials/block_cell.html", time_key=time_key, activity="", plan=plan, sunrise=sunrise, sunset=sunset)
 
+@app.route("/debug/suntime")
+def debug_suntime():
+    day = datetime.now(get_configured_tz()).date()
+    sunrise, sunset = get_sun_times(day)
+    lat = os.environ.get("LATITUDE", os.environ.get("LAT", ""))
+    lon = os.environ.get("LONGITUDE", os.environ.get("LON", ""))
+    info = {
+        "date": date_str(day),
+        "latitude": lat,
+        "longitude": lon,
+        "sunrise": sunrise,
+        "sunset": sunset,
+        "tz": str(get_configured_tz()),
+        "data_dir": str(DATA_DIR),
+        "cwd": os.getcwd(),
+        "inside_docker": os.path.exists("/.dockerenv"),
+    }
+    return app.response_class(
+        response=json.dumps(info, indent=2),
+        status=200,
+        mimetype='application/json'
+    )
+
 if __name__ == "__main__":
+    logger.info("Starting Day Planner on port 8383; DATA_DIR=%s; LAT=%r LON=%r; TZ=%s; inside_docker=%s", DATA_DIR, os.environ.get("LATITUDE", os.environ.get("LAT", "")), os.environ.get("LONGITUDE", os.environ.get("LON", "")), datetime.now().astimezone().tzinfo, os.path.exists("/.dockerenv"))
     app.run(host="0.0.0.0", port=8383, debug=True)
