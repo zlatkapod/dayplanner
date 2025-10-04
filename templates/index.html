@@ -24,9 +24,7 @@
 </div>
 
 <div class="two-col">
-  <section id="blocks">
-    {% include "partials/blocks.html" %}
-  </section>
+  {% include "partials/blocks.html" %}
   <aside>
     <h4>Today's To‑Dos</h4>
     <form class="todo-form" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML">
