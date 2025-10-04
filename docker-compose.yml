@@ -14,5 +14,18 @@ services:
       - LOG_LEVEL=INFO
       - TZ=${TZ:-Europe/Amsterdam}
     restart: unless-stopped
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    environment:
+      - SRC_DIR=/data
+      - DEST_DIR=/backup                 # ignored if REMOTE is set
+      # - REMOTE=user@server:/srv/backups/dayplanner   # uncomment to push remote
+      # - RSYNC_OPTS=-a --delete -z                    # add -z for remote
+    volumes:
+      - dayplanner_data:/data:ro         # your app’s volume (read-only)
+      - ./backups:/backup                # host folder for local mirror
+      - ~/.ssh:/root/.ssh:ro             # needed if REMOTE uses SSH
 volumes:
-  dayplanner_data:
+  dayplanner_data: {}
