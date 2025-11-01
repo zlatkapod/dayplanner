@@ -92,6 +92,25 @@ def save_plan(day: date_cls, plan: dict) -> None:
 
 # --- Sun times helper ---
 
+def is_dark_mode(day: date_cls, sunrise: str | None, sunset: str | None) -> bool:
+    """Return True if current local time is considered 'night' (use dark mode).
+    Uses sunrise/sunset if available, otherwise falls back to 07:00–19:00 daytime.
+    The decision is based on the current time in the configured timezone.
+    """
+    try:
+        now_local = datetime.now(get_configured_tz()).time()
+        if sunrise and sunset:
+            sr = parse_time(sunrise)
+            ss = parse_time(sunset)
+            return not (sr <= now_local < ss)
+        # Fallback window if no sun data
+        sr = parse_time("07:00")
+        ss = parse_time("19:00")
+        return not (sr <= now_local < ss)
+    except Exception:
+        # Be safe: default to light if anything goes wrong
+        return False
+
 def get_sun_times(day: date_cls) -> tuple[str | None, str | None]:
     """Return (sunrise, sunset) as HH:MM local time strings for the given date.
     If LATITUDE/LONGITUDE env vars are not set or an error occurs, return (None, None).
@@ -148,7 +167,8 @@ def index():
     prev_day = day - timedelta(days=1)
     next_day = day + timedelta(days=1)
     sunrise, sunset = get_sun_times(day)
-    return render_template("index.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset)
+    is_dark = is_dark_mode(day, sunrise, sunset)
+    return render_template("index.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark)
 
 @app.route("/settings", methods=["POST"])
 def update_settings():
@@ -169,6 +189,15 @@ def add_todo():
     day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
     plan = load_plan(day)
     txt = (request.form.get("text") or "").strip()
+    minutes_raw = (request.form.get("minutes") or "").strip()
+    # Append minutes as a suffix like " 15min" if provided and valid
+    if minutes_raw:
+        try:
+            m = int(minutes_raw)
+            if m > 0:
+                txt = f"{txt} {m}min" if txt else f"{m}min"
+        except ValueError:
+            pass  # ignore invalid minutes input
     if txt:
         plan["todos"].append(txt)
         save_plan(day, plan)

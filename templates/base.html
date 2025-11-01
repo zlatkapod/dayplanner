@@ -1,88 +1,82 @@
 
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Day Planner</title>
   <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Global light, minimal, warm theme */
+    /* Compact, minimal, Swiss-inspired admin look with light/dark themes */
     :root {
-      color-scheme: light;
-      --scale: 0.86; /* slightly smaller overall for compact look */
-      --bg: #fffdf8;          /* warm off-white */
-      --text: #3b3226;        /* warm dark brown-gray */
-      --muted: #6e6e6e;
-      --accent: #ffb86b;      /* warm apricot */
-      --accent-strong: #ff9f40;
-      --border: #f2e6d9;      /* warm sand */
+      --bs-body-font-size: 0.92rem;
+      --bs-body-bg: #f8f9fb;
+      --bs-body-color: #2c2c2c;
+      --bs-border-color: #e9ecef;
+      --dp-muted: #6c757d;
+      --dp-time-color: #555;
+      --dp-card-bg: #ffffff;
+      --dp-slot-empty-bg: #fcfcfd;
+      --dp-slot-filled-bg: #f6fff6;
+      --dp-slot-filled-border: #d7f0d7;
+      --dp-focus: #86b7fe;
     }
-    html, body { background: var(--bg); color: var(--text); }
-    a { color: #b36800; }
-    a:hover { color: #8a5100; }
+    .theme-dark {
+      --bs-body-bg: #0f141a;           /* deep blue-grey */
+      --bs-body-color: #e6e9ee;        /* light grey-blue text */
+      --bs-border-color: #273240;      /* slate border */
+      --dp-muted: #9aa4b2;             /* muted grey-blue */
+      --dp-time-color: #a8b3bf;
+      --dp-card-bg: #121923;           /* card background */
+      --dp-slot-empty-bg: #121923;     /* empty slot */
+      --dp-slot-filled-bg: #0f1f17;    /* subtle dark green tint */
+      --dp-slot-filled-border: #1d3a2c;/* greenish border */
+      --dp-focus: #5aa2ff;             /* accessible focus */
+    }
 
-    main.container { padding-top: 12px; }
-    h1, h2, h3, h4 { margin: 0.2rem 0 0.4rem; color: var(--text); font-weight: 700; letter-spacing: 0.2px; }
-    section, aside { display:block; }
+    body { background: var(--bs-body-bg); color: var(--bs-body-color); }
 
-    /* Layouts */
-    .two-col { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items:start; }
-    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    /* Container spacing */
+    .dp-container { max-width: 1080px; margin: 0 auto; padding: 16px 16px 24px; }
 
-    .grid { display: grid; grid-template-columns: 100px 1fr; gap: 8px; font-size: calc(1rem * var(--scale)); align-items:center; }
-    /* To‑do form stacked layout for better typing space */
-    .todo-form { display:flex; flex-direction: column; gap: 8px; }
-    .todo-form input[name="text"] { width: 100%; font-size: calc(0.9rem * var(--scale)); padding: 8px 10px; }
-    .todo-form button { align-self: flex-start; }
-    /* Make todo text smaller */
-    #todos .todo-item { font-size: calc(0.9rem * var(--scale)); }
-    #todos .todo-item .todo-pick { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+    /* Header */
+    .dp-header { display:grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .dp-brand { font-weight: 700; font-size: 1rem; letter-spacing: .2px; color: inherit; }
+    .dp-nav a { padding: .125rem .5rem; font-size: .8rem; }
 
-    /* Blocks */
-    .slot { padding: 8px; border-radius: 12px; border: 1px solid var(--border); transition: background-color .15s ease, border-color .15s ease; }
-    .slot.empty { background: #fff8f0; }
-    .slot.filled { background: #f7ffe6; border-color: #e0f2a7; }
-    .time { font-weight: 600; color: #6b5b3e; font-size: calc(0.92rem * var(--scale)); }
-    .icon-sun { color: #f39c12; /* warm sun */ }
-    .icon-moon { color: #5b7fff; /* blue/purple moon for contrast */ filter: saturate(140%); }
+    /* Two columns */
+    .dp-cols { display:grid; grid-template-columns: 1fr 320px; gap: 12px; align-items:start; }
+    @media (max-width: 900px){ .dp-cols { grid-template-columns: 1fr; } }
 
-    .muted { color: var(--muted); font-size: calc(0.88rem * var(--scale)); }
+    /* Blocks grid */
+    .dp-grid { display:grid; grid-template-columns: 84px 1fr; gap: 6px 8px; align-items:center; }
+    .dp-time { font-weight: 600; color: var(--dp-time-color); font-size: .85rem; }
+    .dp-slot { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--bs-border-color); background: var(--dp-card-bg); }
+    .dp-slot.empty { background: var(--dp-slot-empty-bg); }
+    .dp-slot.filled { background: var(--dp-slot-filled-bg); border-color: var(--dp-slot-filled-border); }
 
-    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap: nowrap; }
-    .headerbar { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px; margin-bottom: 10px; }
+    /* Block form */
+    .dp-actions { display:grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items:center; }
+    .dp-actions input[name="text"] { font-size: .9rem; padding: .375rem .5rem; background: var(--dp-card-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
+    .dp-actions .btn, .dp-toolbar .btn, .dp-todos .btn { --bs-btn-padding-y: .22rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .8rem; }
 
-    .brand { font-weight: 800; font-size: calc(1.2rem * var(--scale)); color: #b36800; letter-spacing: 0.5px; }
-    .brand .dot { color: var(--accent-strong); }
+    /* Todo */
+    .dp-todos .todo-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border:1px solid var(--bs-border-color); border-radius: 8px; background: var(--dp-card-bg); }
+    .dp-todos .todo-pick { cursor:pointer; word-break: break-word; }
+    .dp-muted { color: var(--dp-muted); font-size: .8rem; }
 
-    .block-actions { display:grid; grid-template-columns: 1fr auto auto; gap:8px; margin-top:8px; align-items:center; }
-    .block-actions input[name="text"] { min-width: 180px; font-size: calc(0.9rem * var(--scale)); padding: 8px 10px; }
+    /* Toolbar */
+    .dp-toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
 
-    .todo-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border:1px solid #fae3cc; border-radius:12px; background:#fffaf3; }
-
-    .nowrap { white-space: nowrap; }
-    .small { font-size: calc(0.82rem * var(--scale)); }
-    .clicky { cursor: pointer; }
-
-    /* Buttons: warm accents */
-    button, .button { background: var(--accent); border-color: var(--accent); color: #412300; }
-    button:hover, .button:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
-    .button.secondary, button.secondary { background: transparent; border: 1px solid var(--border); color: #6b5b3e; }
-    .button.secondary:hover, button.secondary:hover { background: #fff3e0; }
-
-    button.sm { padding: 6px 10px; font-size: calc(0.85rem * var(--scale)); }
-
-    /* Input fields */
-    input[type="text"], input[type="time"], input:not([type]), textarea { background:#fff; border:1px solid var(--border); color: var(--text); }
-
-    /* Focus outline to aid keyboard nav */
-    .slot:focus-within { outline: 2px solid #ffd28a; outline-offset: 2px; }
+    /* Focus */
+    .dp-slot:focus-within { outline: 2px solid var(--dp-focus); outline-offset: 1px; }
   </style>
 </head>
-<body>
-  <main class="container">
+<body class="{{ 'theme-dark' if is_dark else 'theme-light' }}">
+  <main class="dp-container">
     {% block content %}{% endblock %}
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,19 +1,19 @@
 
-<div id="todos">
+<div id="todos" class="dp-todos">
   {% if plan.todos %}
-    <ul>
+    <ul class="list-unstyled d-flex flex-column gap-2">
       {% for t in plan.todos %}
         <li class="todo-item">
-          <span class="todo-pick clicky" data-text="{{ t }}">{{ t }}</span>
-          <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="small">
+          <span class="todo-pick" data-text="{{ t }}">{{ t }}</span>
+          <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="m-0">
             <input type="hidden" name="date" value="{{ plan.date }}"/>
             <input type="hidden" name="index" value="{{ loop.index0 }}"/>
-            <button class="secondary" type="submit">Delete</button>
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
           </form>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="muted">No todos yet. Add some above.</p>
+    <p class="dp-muted">No todos yet. Add some above.</p>
   {% endif %}
 </div>

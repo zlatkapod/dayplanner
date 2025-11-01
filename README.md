@@ -9,6 +9,7 @@ A tiny local-only day planner that divides your day into 20‑minute blocks, wit
 - 20‑minute blocks; empty blocks are pale, filled blocks are greenish.
 - Add/delete simple todos; click a todo to prefill a block.
 - Daylight indicator: sun icon for blocks between local sunrise and sunset; moon otherwise (configurable by latitude/longitude and timezone).
+- Auto Dark Mode: uses dark theme (dark greys/low‑sat blues) after local sunset and before sunrise; light theme during daytime. No pitch black backgrounds.
 - All data stays local, saved under `data/`.
 - Single-page UX via Flask + HTMX. No DB, no build steps.
 

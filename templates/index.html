@@ -2,40 +2,43 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="headerbar">
+<div class="dp-header">
   <div>
-    <div class="brand nowrap">Plan for {{ plan.date }} <span class="dot">•</span></div>
-    <nav class="small" aria-label="Day navigation" style="margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a class="button secondary sm" href="{{ url_for('index', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
-      <span class="muted">Planning</span>
-      <a class="button secondary sm" href="{{ url_for('index', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
+    <div class="dp-brand text-uppercase">Plan for {{ plan.date }}</div>
+    <nav class="dp-nav d-flex align-items-center gap-2 mt-1" aria-label="Day navigation">
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('index', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
+      <span class="dp-muted">Planning</span>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('index', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
     </nav>
   </div>
-  <form class="toolbar" hx-post="/settings" hx-target="#blocks" hx-swap="outerHTML">
+  <form class="dp-toolbar" hx-post="/settings" hx-target="#blocks" hx-swap="outerHTML">
     <input type="hidden" name="date" value="{{ plan.date }}"/>
-    <label class="small nowrap">Start
-      <input type="time" name="start" value="{{ plan.start }}"/>
-    </label>
-    <label class="small nowrap">End
-      <input type="time" name="end" value="{{ plan.end }}"/>
-    </label>
-    <button type="submit" class="sm nowrap">Apply</button>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="form-text m-0">Start</div>
+      <input type="time" class="form-control form-control-sm" name="start" value="{{ plan.start }}" style="width: 8.5rem;"/>
+      <div class="form-text m-0">End</div>
+      <input type="time" class="form-control form-control-sm" name="end" value="{{ plan.end }}" style="width: 8.5rem;"/>
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    </div>
   </form>
 </div>
 
-<div class="two-col">
+<div class="dp-cols">
   {% include "partials/blocks.html" %}
   <aside>
-    <h4>Today's To‑Dos</h4>
-    <form class="todo-form" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML">
+    <h6 class="text-uppercase text-muted mb-2">Today's To‑Dos</h6>
+    <form class="dp-todos mb-2" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
-      <input name="text" placeholder="Add a todo (press Enter)"/>
-      <button type="submit" class="sm">Add</button>
+      <div class="input-group input-group-sm mb-2">
+        <input name="text" class="form-control" placeholder="Add a todo (press Enter)"/>
+        <input name="minutes" type="number" min="1" step="1" class="form-control" style="max-width: 7rem;" placeholder="mins"/>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
     </form>
-    <div id="todos">
+    <div id="todos" class="dp-todos">
       {% include "partials/todos.html" %}
     </div>
-    <p class="muted small">Tips: click a todo to prefill a block; Press Enter to set, Ctrl+Enter to clear; use Arrow Up/Down to move. Empty blocks are soft peach; filled are fresh lime.</p>
+    <p class="dp-muted mt-2">Tips: click a todo to prefill a block; Press Enter to set, Ctrl+Enter to clear; use Arrow Up/Down to move.</p>
   </aside>
 </div>
 
@@ -43,7 +46,7 @@
   // lightweight UX: click a todo to copy text into the last focused slot input
   let lastInput = null;
   document.addEventListener('focusin', (e) => {
-    if (e.target.matches('.slot input[name="text"]')) {
+    if (e.target.matches('.dp-slot input[name="text"]')) {
       lastInput = e.target;
     }
   });
@@ -57,7 +60,7 @@
   // Keyboard navigation and quick submit
   let submitDirection = 'next'; // or 'prev'
   document.addEventListener('keydown', (e) => {
-    const slot = e.target.closest('.slot');
+    const slot = e.target.closest('.dp-slot');
     if (!slot) return;
 
     // Enter on slot container focuses its input
@@ -67,7 +70,7 @@
     }
 
     // Enter inside input submits the form
-    if (e.key === 'Enter' && e.target.matches('.slot input[name="text"]')) {
+    if (e.key === 'Enter' && e.target.matches('.dp-slot input[name="text"]')) {
       const form = e.target.closest('form');
       if (form) {
         submitDirection = e.shiftKey ? 'prev' : 'next';
@@ -84,7 +87,7 @@
 
     // Arrow navigation between slots
     if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && slot) {
-      const slots = Array.from(document.querySelectorAll('#blocks .slot'));
+      const slots = Array.from(document.querySelectorAll('#blocks .dp-slot'));
       const idx = slots.indexOf(slot);
       let targetIdx = idx + (e.key === 'ArrowDown' ? 1 : -1);
       if (targetIdx < 0) targetIdx = 0; if (targetIdx >= slots.length) targetIdx = slots.length - 1;
@@ -100,7 +103,7 @@
     // Focus input inside swapped cell first (it may rerender)
     const input = el.querySelector('input[name="text"]');
     if (input) input.focus();
-    const slots = Array.from(document.querySelectorAll('#blocks .slot'));
+    const slots = Array.from(document.querySelectorAll('#blocks .dp-slot'));
     const idx = slots.indexOf(el);
     if (idx >= 0) {
       const nextIdx = submitDirection === 'prev' ? Math.max(0, idx - 1) : Math.min(slots.length - 1, idx + 1);
