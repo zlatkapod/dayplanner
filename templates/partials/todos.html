@@ -3,13 +3,20 @@
   {% if plan.todos %}
     <ul class="list-unstyled d-flex flex-column gap-2">
       {% for t in plan.todos %}
-        <li class="todo-item">
-          <span class="todo-pick" data-text="{{ t }}">{{ t }}</span>
-          <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="m-0">
-            <input type="hidden" name="date" value="{{ plan.date }}"/>
-            <input type="hidden" name="index" value="{{ loop.index0 }}"/>
-            <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
-          </form>
+        <li class="todo-item d-flex align-items-center gap-2 w-100">
+          <span class="todo-pick flex-grow-1" data-text="{{ t }}">{{ t }}</span>
+          <div class="ms-auto d-flex align-items-center gap-2">
+            <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="m-0">
+              <input type="hidden" name="date" value="{{ plan.date }}"/>
+              <input type="hidden" name="index" value="{{ loop.index0 }}"/>
+              <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
+            </form>
+            <form hx-post="/todo/move_next" hx-target="#todos" hx-swap="outerHTML" class="m-0">
+              <input type="hidden" name="date" value="{{ plan.date }}"/>
+              <input type="hidden" name="index" value="{{ loop.index0 }}"/>
+              <button class="btn btn-warning btn-sm" type="submit" title="Move to next day">&raquo;</button>
+            </form>
+          </div>
         </li>
       {% endfor %}
     </ul>

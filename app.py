@@ -213,6 +213,34 @@ def delete_todo():
         save_plan(day, plan)
     return render_template("partials/todos.html", plan=plan)
 
+@app.route("/todo/move_next", methods=["POST"])
+def move_todo_next_day():
+    """Move a todo item from the given day to the next day's todo list.
+    Expects form fields: date (YYYY-MM-DD), index (0-based).
+    Returns the updated todos partial for the current day.
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+
+    plan_today = load_plan(day)
+    if 0 <= idx < len(plan_today.get("todos", [])):
+        # Remove from today
+        todo_text = plan_today["todos"].pop(idx)
+        save_plan(day, plan_today)
+        # Add to next day
+        next_day = day + timedelta(days=1)
+        plan_tomorrow = load_plan(next_day)
+        plan_tomorrow.setdefault("todos", []).append(todo_text)
+        save_plan(next_day, plan_tomorrow)
+    # Always return updated today's todos
+    return render_template("partials/todos.html", plan=plan_today)
+
 @app.route("/block", methods=["POST"])
 def set_block():
     day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
