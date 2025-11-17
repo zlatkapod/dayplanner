@@ -1,9 +1,9 @@
 
 <div id="todos" class="dp-todos">
   {% if plan.todos %}
-    <ul class="list-unstyled d-flex flex-column gap-2">
+    <ul id="todo-list" data-date="{{ plan.date }}" class="list-unstyled d-flex flex-column gap-2">
       {% for t in plan.todos %}
-        <li class="todo-item d-flex align-items-center gap-2 w-100">
+        <li class="todo-item d-flex align-items-center gap-2 w-100" data-text="{{ t }}">
           <span class="todo-pick flex-grow-1" data-text="{{ t }}">{{ t }}</span>
           <div class="ms-auto d-flex align-items-center gap-2">
             <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="m-0">
@@ -23,4 +23,18 @@
   {% else %}
     <p class="dp-muted">No todos yet. Add some above.</p>
   {% endif %}
+
+  <div class="mt-3">
+    <h6 class="text-uppercase text-muted mb-2">What I want to achieve today? Does this schedule make me happy about my life?</h6>
+    <form hx-post="/note" hx-trigger="input changed delay:600ms" hx-swap="none">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <textarea name="text"
+                class="form-control form-control-sm dp-note"
+                placeholder="Write your thoughts..."
+                rows="3"
+                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+      >{{ plan.note or '' }}</textarea>
+    </form>
+  </div>
 </div>

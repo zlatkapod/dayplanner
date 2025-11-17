@@ -66,11 +66,13 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         "end": time_to_str(end),
         "todos": [],
         "blocks": slots,
+        "note": "",
     }
     # if existing provided, try to keep activities where times still exist
     if existing:
         existing_acts = {b["time"]: b.get("activity","") for b in existing.get("blocks",[])}
         plan["todos"] = existing.get("todos", [])
+        plan["note"] = existing.get("note", existing.get("notes", ""))
         for b in plan["blocks"]:
             if b["time"] in existing_acts:
                 b["activity"] = existing_acts[b["time"]]
@@ -240,6 +242,48 @@ def move_todo_next_day():
         save_plan(next_day, plan_tomorrow)
     # Always return updated today's todos
     return render_template("partials/todos.html", plan=plan_today)
+
+@app.route("/todo/reorder_all", methods=["POST"])
+def reorder_all_todos():
+    """Replace the entire order of the todo list for a given day.
+    Expects form fields: date (YYYY-MM-DD), order (JSON array of strings).
+    Returns the updated todos partial (for HTMX swap).
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+
+    order_raw = request.form.get("order") or "[]"
+    try:
+        new_order = json.loads(order_raw)
+        if not isinstance(new_order, list):
+            raise ValueError("order is not a list")
+        # Coerce all entries to strings (defensive)
+        new_order = [str(x) for x in new_order]
+    except Exception:
+        abort(400, "Bad order payload")
+
+    plan = load_plan(day)
+    plan["todos"] = new_order
+    save_plan(day, plan)
+    return render_template("partials/todos.html", plan=plan)
+
+@app.route("/note", methods=["POST"])
+def save_note():
+    """Autosave the day-level note field from the sidebar textarea.
+    Expects form fields: date (YYYY-MM-DD), text (string).
+    Returns 204 No Content for HTMX with hx-swap="none".
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    text = (request.form.get("text") or "")
+    plan = load_plan(day)
+    plan["note"] = text
+    save_plan(day, plan)
+    return ("", 204)
 
 @app.route("/block", methods=["POST"])
 def set_block():

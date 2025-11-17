@@ -112,6 +112,45 @@
       if (tInput) tInput.focus();
     }
   });
+
+  // Auto-resize note textarea(s) on load and after HTMX swaps
+  function resizeNotes(scope=document){
+    const areas = scope.querySelectorAll('textarea.dp-note');
+    areas.forEach(a => { a.style.height = 'auto'; a.style.height = a.scrollHeight + 'px'; });
+  }
+  document.addEventListener('DOMContentLoaded', () => resizeNotes());
+  document.body.addEventListener('htmx:afterSwap', (evt) => {
+    resizeNotes(evt.target || document);
+  });
+  // Initialize SortableJS for the todos list and persist order via HTMX
+  function initTodoSortable(scope=document){
+    const todosRoot = scope.querySelector('#todos');
+    if (!todosRoot) return;
+    const ul = todosRoot.querySelector('#todo-list');
+    if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
+    ul.dataset.sortableInit = '1';
+    const date = ul.getAttribute('data-date');
+    new Sortable(ul, {
+      animation: 150,
+      ghostClass: 'bg-warning-subtle',
+      dragClass: 'opacity-75',
+      onEnd: function(){
+        const order = Array.from(ul.querySelectorAll('li.todo-item'))
+          .map(li => li.getAttribute('data-text'));
+        htmx.ajax('POST', '/todo/reorder_all', {
+          values: { date: date, order: JSON.stringify(order) },
+          target: '#todos', swap: 'outerHTML'
+        });
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => initTodoSortable());
+  document.body.addEventListener('htmx:afterSwap', (evt) => {
+    const target = evt.target;
+    if (target && target.id === 'todos') {
+      initTodoSortable(document);
+    }
+  });
 </script>
 
 {% endblock %}
