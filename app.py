@@ -17,6 +17,8 @@ logger = logging.getLogger("dayplanner")
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+TOOLS_PATH = DATA_DIR / "tools.json"
+QNA_PATH = DATA_DIR / "qna.json"
 
 # --- Timezone helper ---
 
@@ -91,6 +93,110 @@ def load_plan(day: date_cls) -> dict:
 def save_plan(day: date_cls, plan: dict) -> None:
     with open(plan_path(day), "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
+
+# --- Tools data helpers ---
+
+import secrets
+
+def _new_id(prefix: str = "t") -> str:
+    return f"{prefix}_{secrets.token_hex(4)}"
+
+# --- Q&A data helpers ---
+
+def default_qna() -> dict:
+    return {
+        "questions": [
+            # {"id": _new_id("q"), "text": "Example: Research gardening soil pH"}
+        ],
+        "links": [
+            # {"id": _new_id("lnk"), "name": "ChatGPT thread about fasting", "url": "https://chat.openai.com/..."}
+        ],
+    }
+
+def load_qna() -> dict:
+    if QNA_PATH.exists():
+        try:
+            with open(QNA_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = default_qna()
+    else:
+        data = default_qna()
+    # normalize
+    data.setdefault("questions", [])
+    data.setdefault("links", [])
+    return data
+
+def save_qna(data: dict) -> None:
+    with open(QNA_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def default_tools() -> dict:
+    return {
+        "categories": [
+            {
+                "id": _new_id("cat"),
+                "name": "Languages",
+                "items": [
+                    {"id": _new_id("itm"), "name": "Duolingo", "url": "https://www.duolingo.com/", "keywords": ["dutch", "repetition", "fun"]},
+                    {"id": _new_id("itm"), "name": "DeepL", "url": "https://www.deepl.com/", "keywords": ["translate", "writing", "clarity"]}
+                ]
+            },
+            {
+                "id": _new_id("cat"),
+                "name": "Organization",
+                "items": [
+                    {"id": _new_id("itm"), "name": "Notion", "url": "https://www.notion.so/", "keywords": ["personal", "business", "robotics"]},
+                    {"id": _new_id("itm"), "name": "Trello", "url": "https://trello.com/", "keywords": ["kanban", "projects", "teams"]}
+                ]
+            },
+            {
+                "id": _new_id("cat"),
+                "name": "Development",
+                "items": [
+                    {"id": _new_id("itm"), "name": "GitHub", "url": "https://github.com/", "keywords": ["code", "repos", "issues"]},
+                    {"id": _new_id("itm"), "name": "Stack Overflow", "url": "https://stackoverflow.com/", "keywords": ["questions", "answers", "snippets"]}
+                ]
+            }
+        ]
+    }
+
+def _migrate_tool_ids(data: dict) -> dict:
+    changed = False
+    cats = data.get("categories") or []
+    for c in cats:
+        if "id" not in c:
+            c["id"] = _new_id("cat"); changed = True
+        items = c.get("items") or []
+        for it in items:
+            if "id" not in it:
+                it["id"] = _new_id("itm"); changed = True
+            # normalize fields
+            it.setdefault("keywords", [])
+            it.setdefault("url", "")
+            it.setdefault("name", "")
+    if changed:
+        save_tools(data)
+    return data
+
+def load_tools() -> dict:
+    if TOOLS_PATH.exists():
+        try:
+            with open(TOOLS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return _migrate_tool_ids(data)
+                else:
+                    logger.warning("tools.json root is not a dict; reinitializing")
+        except Exception as e:
+            logger.warning("Failed to read tools.json, reinitializing with defaults: %s", e)
+    data = default_tools()
+    save_tools(data)
+    return data
+
+def save_tools(data: dict) -> None:
+    with open(TOOLS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 # --- Sun times helper ---
 
@@ -312,6 +418,199 @@ def clear_block():
     save_plan(day, plan)
     sunrise, sunset = get_sun_times(day)
     return render_template("partials/block_cell.html", time_key=time_key, activity="", plan=plan, sunrise=sunrise, sunset=sunset)
+
+@app.route("/tools", methods=["GET"])
+def tools_page():
+    # Use today's date for theme context only
+    today = datetime.now(get_configured_tz()).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
+    tools = load_tools()
+    return render_template("tools.html", tools=tools, is_dark=is_dark)
+
+# --- Q&A routes ---
+
+@app.route("/qna", methods=["GET"])
+def qna_page():
+    # Theme context uses today
+    today = datetime.now(get_configured_tz()).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
+    qna = load_qna()
+    return render_template("qna.html", qna=qna, is_dark=is_dark)
+
+@app.route("/qna/question/add", methods=["POST"])
+def qna_add_question():
+    text = (request.form.get("text") or "").strip()
+    if not text:
+        return ("Missing text", 400)
+    data = load_qna()
+    # prepend
+    data.setdefault("questions", []).insert(0, {"id": _new_id("q"), "text": text})
+    save_qna(data)
+    return render_template("partials/qna_questions.html", qna=data)
+
+@app.route("/qna/question/delete", methods=["POST"])
+def qna_delete_question():
+    qid = (request.form.get("id") or "").strip()
+    data = load_qna()
+    qs = data.setdefault("questions", [])
+    idx = next((i for i, q in enumerate(qs) if q.get("id") == qid), -1)
+    if idx >= 0:
+        qs.pop(idx)
+        save_qna(data)
+    return render_template("partials/qna_questions.html", qna=data)
+
+@app.route("/qna/link/add", methods=["POST"])
+def qna_add_link():
+    name = (request.form.get("name") or "").strip()
+    url_val = (request.form.get("url") or "").strip()
+    if not name or not url_val:
+        return ("Missing name or url", 400)
+    if not (url_val.startswith("http://") or url_val.startswith("https://")):
+        return ("URL must start with http:// or https://", 400)
+    data = load_qna()
+    data.setdefault("links", []).insert(0, {"id": _new_id("lnk"), "name": name, "url": url_val})
+    save_qna(data)
+    return render_template("partials/qna_links.html", qna=data)
+
+@app.route("/qna/link/delete", methods=["POST"])
+def qna_delete_link():
+    lid = (request.form.get("id") or "").strip()
+    data = load_qna()
+    ls = data.setdefault("links", [])
+    idx = next((i for i, l in enumerate(ls) if l.get("id") == lid), -1)
+    if idx >= 0:
+        ls.pop(idx)
+        save_qna(data)
+    return render_template("partials/qna_links.html", qna=data)
+
+@app.route("/tools/category/add", methods=["POST"])
+def tools_add_category():
+    name = (request.form.get("name") or "").strip()
+    if not name:
+        return ("Missing category name", 400)
+    data = load_tools()
+    # Avoid duplicate names (case-insensitive)
+    existing = next((c for c in data.get("categories", []) if c.get("name", "").strip().lower() == name.lower()), None)
+    if existing is None:
+        data.setdefault("categories", []).append({"id": _new_id("cat"), "name": name, "items": []})
+        save_tools(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("tools_page")
+    return resp
+
+
+def _find_category(data: dict, cat_id: str) -> dict | None:
+    return next((c for c in data.get("categories", []) if c.get("id") == cat_id), None)
+
+
+def _parse_tags(raw: str) -> list[str]:
+    parts = [p.strip() for p in (raw or "").split(",")]
+    return [p for p in parts if p]
+
+
+@app.route("/tools/item/add", methods=["POST"])
+def tools_item_add():
+    name = (request.form.get("name") or "").strip()
+    url_val = (request.form.get("url") or "").strip()
+    cat_id = (request.form.get("category_id") or "").strip()
+    tags_raw = (request.form.get("tags") or "").strip()
+    if not name or not url_val or not cat_id:
+        return ("Missing required fields", 400)
+    if not (url_val.startswith("http://") or url_val.startswith("https://")):
+        return ("URL must start with http:// or https://", 400)
+    data = load_tools()
+    cat = _find_category(data, cat_id)
+    if cat is None:
+        return ("Category not found", 400)
+    item = {"id": _new_id("itm"), "name": name, "url": url_val, "keywords": _parse_tags(tags_raw)}
+    cat.setdefault("items", []).append(item)
+    save_tools(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("tools_page")
+    return resp
+
+
+@app.route("/tools/item/update", methods=["POST"])
+def tools_item_update():
+    item_id = (request.form.get("item_id") or "").strip()
+    from_cat_id = (request.form.get("from_category_id") or "").strip()
+    to_cat_id = (request.form.get("category_id") or from_cat_id).strip()
+    name = (request.form.get("name") or "").strip()
+    url_val = (request.form.get("url") or "").strip()
+    tags_raw = (request.form.get("tags") or "").strip()
+    if not item_id or not from_cat_id:
+        return ("Missing item or category id", 400)
+    if not name or not url_val:
+        return ("Missing name or url", 400)
+    if not (url_val.startswith("http://") or url_val.startswith("https://")):
+        return ("URL must start with http:// or https://", 400)
+    data = load_tools()
+    from_cat = _find_category(data, from_cat_id)
+    if from_cat is None:
+        return ("Source category not found", 400)
+    # locate item
+    items = from_cat.get("items", [])
+    idx = next((i for i, it in enumerate(items) if it.get("id") == item_id), -1)
+    if idx == -1:
+        return ("Item not found", 404)
+    it = items[idx]
+    # If category changes, move it
+    if to_cat_id != from_cat_id:
+        to_cat = _find_category(data, to_cat_id)
+        if to_cat is None:
+            return ("Destination category not found", 400)
+        # remove from old
+        items.pop(idx)
+        it = {**it}
+        to_cat.setdefault("items", []).append(it)
+        from_cat = to_cat  # for response consistency
+    # update fields
+    it["name"] = name
+    it["url"] = url_val
+    it["keywords"] = _parse_tags(tags_raw)
+    save_tools(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("tools_page")
+    return resp
+
+
+@app.route("/tools/item/delete", methods=["POST"])
+def tools_item_delete():
+    item_id = (request.form.get("item_id") or "").strip()
+    cat_id = (request.form.get("category_id") or "").strip()
+    if not item_id or not cat_id:
+        return ("Missing item or category id", 400)
+    data = load_tools()
+    cat = _find_category(data, cat_id)
+    if cat is None:
+        return ("Category not found", 400)
+    items = cat.get("items", [])
+    new_items = [it for it in items if it.get("id") != item_id]
+    cat["items"] = new_items
+    save_tools(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("tools_page")
+    return resp
+
+@app.route("/tools/category/delete", methods=["POST"])
+def tools_category_delete():
+    cat_id = (request.form.get("category_id") or "").strip()
+    if not cat_id:
+        return ("Missing category id", 400)
+    data = load_tools()
+    cats = data.get("categories", [])
+    # Filter out the category by id
+    new_cats = [c for c in cats if c.get("id") != cat_id]
+    if len(new_cats) == len(cats):
+        # nothing removed; treat as not found
+        return ("Category not found", 404)
+    data["categories"] = new_cats
+    save_tools(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("tools_page")
+    return resp
 
 @app.route("/debug/suntime")
 def debug_suntime():
