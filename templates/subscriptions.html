@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dp-header">
+  <div>
+    <div class="dp-brand text-uppercase">Subscriptions</div>
+    <div class="dp-muted">Track recurring payments and next renewal dates.</div>
+  </div>
+</div>
+
+<div class="dp-cols" style="grid-template-columns: 1fr 1.2fr;">
+  <!-- Add new subscription -->
+  <section>
+    <h6 class="text-uppercase text-muted mb-2">Add Subscription</h6>
+    <form class="mb-3" hx-post="/subscriptions/add" hx-swap="none" hx-on::after-request="this.reset()">
+      <div class="row g-2">
+        <div class="col-12 col-md-6">
+          <input name="name" class="form-control form-control-sm" placeholder="Name (e.g., Netflix)" required />
+        </div>
+        <div class="col-12 col-md-6">
+          <input name="url" class="form-control form-control-sm" placeholder="https://…" />
+        </div>
+        <div class="col-6 col-md-4">
+          <input type="date" name="renewal_date" class="form-control form-control-sm" required />
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">$</span>
+            <input name="price" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+          </div>
+        </div>
+        <div class="col-12 col-md-4 d-flex align-items-center gap-2">
+          <input id="is_active" name="is_active" type="checkbox" class="form-check-input" checked />
+          <label for="is_active" class="form-check-label">Active</label>
+        </div>
+        <div class="col-12 d-grid">
+          <button class="btn btn-primary btn-sm" type="submit">Add</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- List subscriptions -->
+  <section>
+    <h6 class="text-uppercase text-muted mb-2">Upcoming renewals</h6>
+    <div class="vstack gap-2">
+      {% if subs|length == 0 %}
+        <div class="dp-slot">No subscriptions yet.</div>
+      {% endif %}
+      {% for s in subs %}
+        <div class="dp-slot">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div class="me-auto">
+              <div class="d-flex align-items-center gap-2">
+                {% if s.url %}
+                  <a href="{{ s.url }}" target="_blank" rel="noopener" class="fw-semibold text-decoration-none">{{ s.name }}</a>
+                {% else %}
+                  <span class="fw-semibold">{{ s.name }}</span>
+                {% endif %}
+                {% if not s.is_active %}
+                  <span class="badge text-bg-secondary">Inactive</span>
+                {% endif %}
+              </div>
+              <div class="dp-muted small mt-1">
+                Renews on <strong>{{ s.renewal_date }}</strong>
+                {% if s._delta == 0 %}
+                  — today
+                {% elif s._future %}
+                  — in {{ s._days_abs }} day{{ 's' if s._days_abs != 1 else '' }}
+                {% else %}
+                  — {{ s._days_abs }} day{{ 's' if s._days_abs != 1 else '' }} ago
+                {% endif %}
+              </div>
+            </div>
+            <div class="text-nowrap">
+              <span class="fw-semibold">${{ '%.2f'|format(s.price or 0) }}</span>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}

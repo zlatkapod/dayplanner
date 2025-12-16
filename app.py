@@ -19,6 +19,7 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOOLS_PATH = DATA_DIR / "tools.json"
 QNA_PATH = DATA_DIR / "qna.json"
+SUBSCRIPTIONS_PATH = DATA_DIR / "subscriptions.json"
 
 # --- Timezone helper ---
 
@@ -196,6 +197,43 @@ def load_tools() -> dict:
 
 def save_tools(data: dict) -> None:
     with open(TOOLS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+# --- Subscriptions data helpers ---
+
+def default_subscriptions() -> dict:
+    return {"subscriptions": []}
+
+
+def load_subscriptions() -> dict:
+    if SUBSCRIPTIONS_PATH.exists():
+        try:
+            with open(SUBSCRIPTIONS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if not isinstance(data, dict):
+                    data = default_subscriptions()
+        except Exception:
+            data = default_subscriptions()
+    else:
+        data = default_subscriptions()
+    # normalize
+    subs = data.setdefault("subscriptions", [])
+    for s in subs:
+        s.setdefault("id", _new_id("sub"))
+        s.setdefault("name", "")
+        s.setdefault("url", "")
+        s.setdefault("renewal_date", "")  # YYYY-MM-DD
+        s.setdefault("is_active", True)
+        # price stored as float
+        try:
+            s["price"] = float(s.get("price", 0) or 0)
+        except Exception:
+            s["price"] = 0.0
+    return data
+
+
+def save_subscriptions(data: dict) -> None:
+    with open(SUBSCRIPTIONS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 # --- Sun times helper ---
@@ -427,6 +465,91 @@ def tools_page():
     is_dark = is_dark_mode(today, sunrise, sunset)
     tools = load_tools()
     return render_template("tools.html", tools=tools, is_dark=is_dark)
+
+# --- Subscriptions routes ---
+
+@app.route("/subscriptions", methods=["GET"])
+def subscriptions_page():
+    tz = get_configured_tz()
+    today = datetime.now(tz).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
+    data = load_subscriptions()
+    subs = data.get("subscriptions", [])
+
+    def parse_date(s: str) -> date_cls | None:
+        try:
+            return datetime.strptime((s or "").strip(), "%Y-%m-%d").date()
+        except Exception:
+            return None
+
+    # annotate with delta info for sorting/rendering
+    annotated = []
+    for s in subs:
+        d = parse_date(s.get("renewal_date", ""))
+        if d is None:
+            delta = 10**9  # push unknowns to the end
+            future = True
+            days_abs = delta
+        else:
+            delta = (d - today).days
+            future = delta >= 0
+            days_abs = abs(delta)
+        annotated.append({**s, "_delta": delta, "_future": future, "_days_abs": days_abs})
+
+    # Sorting: active upcoming by soonest (delta asc), then active overdue (abs delta asc), then inactive with same rules
+    def sort_key(s: dict):
+        active_rank = 0 if s.get("is_active", True) else 1
+        # group future first inside active/inactive
+        future_group = 0 if s.get("_future", True) else 1
+        # within future group sort by delta asc; within past group by abs(delta) asc
+        primary = s.get("_delta", 10**9) if future_group == 0 else s.get("_days_abs", 10**9)
+        return (active_rank, future_group, primary, s.get("name", ""))
+
+    annotated.sort(key=sort_key)
+
+    return render_template("subscriptions.html", subs=annotated, is_dark=is_dark, today=date_str(today))
+
+@app.route("/subscriptions/add", methods=["POST"])
+def subscriptions_add():
+    name = (request.form.get("name") or "").strip()
+    url_val = (request.form.get("url") or "").strip()
+    renewal_date = (request.form.get("renewal_date") or "").strip()
+    is_active_raw = request.form.get("is_active")
+    price_raw = (request.form.get("price") or "").strip()
+
+    if not name:
+        return ("Missing name", 400)
+    # renewal date required
+    try:
+        datetime.strptime(renewal_date, "%Y-%m-%d")
+    except Exception:
+        return ("Bad renewal date; expected YYYY-MM-DD", 400)
+
+    if url_val and not (url_val.startswith("http://") or url_val.startswith("https://")):
+        return ("URL must start with http:// or https://", 400)
+
+    try:
+        price = float(price_raw) if price_raw != "" else 0.0
+    except Exception:
+        return ("Price must be a number", 400)
+
+    is_active = bool(is_active_raw)
+
+    data = load_subscriptions()
+    data.setdefault("subscriptions", []).append({
+        "id": _new_id("sub"),
+        "name": name,
+        "url": url_val,
+        "renewal_date": renewal_date,
+        "is_active": is_active,
+        "price": price,
+    })
+    save_subscriptions(data)
+
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("subscriptions_page")
+    return resp
 
 # --- Q&A routes ---
 
