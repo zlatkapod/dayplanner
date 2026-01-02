@@ -1,8 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+  /* Tools page overrides */
+  #tools-page a { color: #343a40; }
+  .theme-dark #tools-page a { color: #d1d5db; }
+  #tools-page a:hover { text-decoration: underline; }
 
-<div class="dp-cols" style="grid-template-columns: 260px 1fr;">
+  .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 992px) { .tool-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .tool-grid { grid-template-columns: 1fr; } }
+
+  .tool-card { border:1px solid var(--bs-border-color); background: var(--dp-card-bg); border-radius: 10px; padding: 8px; display: grid; grid-template-rows: auto 1fr auto; aspect-ratio: 1 / 1; border-left: 12px solid var(--stripe, #9ca3af); }
+  .tool-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .tool-name { font-weight:600; line-height:1.2; }
+  .tool-tags { margin-top: 6px; }
+  .tool-actions { display:flex; gap:6px; justify-content:flex-end; }
+
+  /* Category list link color override */
+  #tools-categories a { color: #343a40; }
+  .theme-dark #tools-categories a { color: #d1d5db; }
+</style>
+
+<div id="tools-page" class="dp-cols" style="grid-template-columns: 260px 1fr;">
   <aside>
     <div class="d-flex align-items-center justify-content-between">
       <h6 class="text-uppercase text-muted mb-2">Categories</h6>
@@ -20,6 +40,7 @@
       {% for cat in tools.categories %}
         <li class="mb-1 d-flex align-items-center justify-content-between gap-2">
           <a class="text-decoration-none" href="#cat-{{ cat.id }}">{{ cat.name }}</a>
+          {% if not cat['items'] or (cat['items'] | length) == 0 %}
           <form hx-post="/tools/category/delete" hx-swap="none" class="m-0">
             <input type="hidden" name="category_id" value="{{ cat.id }}"/>
             <button class="btn btn-danger btn-sm" type="submit" title="Delete category" aria-label="Delete category">
@@ -34,6 +55,7 @@
               </svg>
             </button>
           </form>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
@@ -58,10 +80,13 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-12 col-md-8">
+          <div class="col-12 col-md-6">
             <input name="tags" class="form-control form-control-sm" placeholder="tags (comma separated)" />
           </div>
-          <div class="col-12 col-md-4 d-grid">
+          <div class="col-12 col-md-3">
+            <input name="color" class="form-control form-control-sm" placeholder="#ff9900" pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" title="Hex color like #RGB or #RRGGBB" />
+          </div>
+          <div class="col-12 col-md-3 d-grid">
             <button class="btn btn-primary btn-sm" type="submit">Add Tool</button>
           </div>
         </div>
@@ -71,76 +96,53 @@
     {% for cat in tools.categories %}
       <div id="cat-{{ cat.id }}" class="mb-4">
         <h5 class="mb-3">{{ cat.name }}</h5>
-        <div class="row g-2">
+        <div class="tool-grid">
           {% for item in cat['items'] %}
-            <div class="col-12 col-md-6">
-              <div class="dp-slot">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div class="me-2">
-                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="fw-semibold text-decoration-none">{{ item.name }}</a>
+            <div class="tool-card" style="--stripe: {{ item.color or '#9ca3af' }};">
+              <div class="tool-header">
+                <div class="d-flex align-items-center gap-2">
+                  <div>
+                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="tool-name text-decoration-none">{{ item.name }}</a>
                     {% if item.keywords %}
-                      <div class="dp-muted small mt-1">
+                      <div class="tool-tags small mt-1">
                         {% for k in item.keywords %}
                           <span class="badge text-bg-secondary me-1">{{ k }}</span>
                         {% endfor %}
                       </div>
                     {% endif %}
                   </div>
-                  <div class="ms-auto d-flex align-items-center gap-1">
-                    <!-- Edit toggle -->
-                    <a href="#edit-{{ item.id }}" class="btn btn-outline-secondary btn-sm" onclick="const d=this.closest('.dp-slot').querySelector('details.item-edit'); if(d) d.open=!d.open; return false;" title="Edit" aria-label="Edit">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83l3.75 3.75l1.99-1.66Z"/></svg>
-                    </a>
-                    <!-- Delete -->
-                    <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
-                      <input type="hidden" name="item_id" value="{{ item.id }}"/>
-                      <input type="hidden" name="category_id" value="{{ cat.id }}"/>
-                      <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                          <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 7h16"/>
-                            <path d="M10 11v6"/>
-                            <path d="M14 11v6"/>
-                            <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
-                            <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                          </g>
-                        </svg>
-                      </button>
-                    </form>
-                  </div>
                 </div>
-                <!-- Inline edit form -->
-                <details class="item-edit mt-2">
-                  <summary class="dp-muted small">Edit</summary>
-                  <form class="mt-2" hx-post="/tools/item/update" hx-swap="none">
+                <div class="tool-actions">
+                  <a
+                    href="javascript:void(0)"
+                    role="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    hx-get="/tools/item/edit?item_id={{ item.id }}&category_id={{ cat.id }}"
+                    hx-target="#toolEditModal .modal-content"
+                    hx-swap="innerHTML"
+                    hx-on:htmx:afterSwap="new bootstrap.Modal(document.getElementById('toolEditModal')).show()"
+                    data-bs-toggle="modal"
+                    data-bs-target="#toolEditModal"
+                    title="Edit"
+                    aria-label="Edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83l3.75 3.75l1.99-1.66Z"/></svg>
+                  </a>
+                  <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
                     <input type="hidden" name="item_id" value="{{ item.id }}"/>
-                    <input type="hidden" name="from_category_id" value="{{ cat.id }}"/>
-                    <div class="row g-2">
-                      <div class="col-12 col-md-3">
-                        <input name="name" class="form-control form-control-sm" value="{{ item.name }}" required />
-                      </div>
-                      <div class="col-12 col-md-4">
-                        <input name="url" class="form-control form-control-sm" value="{{ item.url }}" required />
-                      </div>
-                      <div class="col-12 col-md-3">
-                        <select name="category_id" class="form-select form-select-sm">
-                          {% for c2 in tools.categories %}
-                            <option value="{{ c2.id }}" {% if c2.id == cat.id %}selected{% endif %}>{{ c2.name }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                      <div class="col-12 col-md-8">
-                        <input name="tags" class="form-control form-control-sm" value="{{ item.keywords | join(', ') }}" placeholder="tags" />
-                      </div>
-                      <div class="col-12 col-md-4 d-grid gap-2">
-                        <div class="btn-group">
-                          <button class="btn btn-primary btn-sm" type="submit">Save</button>
-                          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="this.closest('details').open=false;">Cancel</button>
-                        </div>
-                      </div>
-                    </div>
+                    <input type="hidden" name="category_id" value="{{ cat.id }}"/>
+                    <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M4 7h16"/>
+                          <path d="M10 11v6"/>
+                          <path d="M14 11v6"/>
+                          <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
+                          <path d="M9 7V5a 2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                        </g>
+                      </svg>
+                    </button>
                   </form>
-                </details>
+                </div>
               </div>
             </div>
           {% endfor %}
@@ -148,6 +150,15 @@
       </div>
     {% endfor %}
   </section>
+</div>
+
+<!-- Modal shell for editing tools -->
+<div class="modal fade" id="toolEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <!-- Content loaded dynamically via HTMX -->
+    </div>
+  </div>
 </div>
 
 {% endblock %}

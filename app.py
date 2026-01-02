@@ -11,6 +11,7 @@ from suntime import Sun, SunTimeException
 
 app = Flask(__name__)
 
+
 # Configure logging
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("dayplanner")
@@ -97,7 +98,7 @@ def save_plan(day: date_cls, plan: dict) -> None:
 
 # --- Tools data helpers ---
 
-import secrets
+import secrets, re
 
 def _new_id(prefix: str = "t") -> str:
     return f"{prefix}_{secrets.token_hex(4)}"
@@ -139,28 +140,45 @@ def default_tools() -> dict:
                 "id": _new_id("cat"),
                 "name": "Languages",
                 "items": [
-                    {"id": _new_id("itm"), "name": "Duolingo", "url": "https://www.duolingo.com/", "keywords": ["dutch", "repetition", "fun"]},
-                    {"id": _new_id("itm"), "name": "DeepL", "url": "https://www.deepl.com/", "keywords": ["translate", "writing", "clarity"]}
+                    {"id": _new_id("itm"), "name": "Duolingo", "url": "https://www.duolingo.com/", "keywords": ["dutch", "repetition", "fun"], "color": ""},
+                    {"id": _new_id("itm"), "name": "DeepL", "url": "https://www.deepl.com/", "keywords": ["translate", "writing", "clarity"], "color": ""}
                 ]
             },
             {
                 "id": _new_id("cat"),
                 "name": "Organization",
                 "items": [
-                    {"id": _new_id("itm"), "name": "Notion", "url": "https://www.notion.so/", "keywords": ["personal", "business", "robotics"]},
-                    {"id": _new_id("itm"), "name": "Trello", "url": "https://trello.com/", "keywords": ["kanban", "projects", "teams"]}
+                    {"id": _new_id("itm"), "name": "Notion", "url": "https://www.notion.so/", "keywords": ["personal", "business", "robotics"], "color": ""},
+                    {"id": _new_id("itm"), "name": "Trello", "url": "https://trello.com/", "keywords": ["kanban", "projects", "teams"], "color": ""}
                 ]
             },
             {
                 "id": _new_id("cat"),
                 "name": "Development",
                 "items": [
-                    {"id": _new_id("itm"), "name": "GitHub", "url": "https://github.com/", "keywords": ["code", "repos", "issues"]},
-                    {"id": _new_id("itm"), "name": "Stack Overflow", "url": "https://stackoverflow.com/", "keywords": ["questions", "answers", "snippets"]}
+                    {"id": _new_id("itm"), "name": "GitHub", "url": "https://github.com/", "keywords": ["code", "repos", "issues"], "color": ""},
+                    {"id": _new_id("itm"), "name": "Stack Overflow", "url": "https://stackoverflow.com/", "keywords": ["questions", "answers", "snippets"], "color": ""}
                 ]
             }
         ]
     }
+
+DEFAULT_TOOL_COLOR = "#9ca3af"  # neutral gray fallback
+
+HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+def _validate_hex_color(raw: str | None) -> str:
+    s = (raw or "").strip()
+    if not s:
+        return DEFAULT_TOOL_COLOR
+    if HEX_COLOR_RE.match(s):
+        # normalize to 6-char if 3 provided
+        if len(s) == 4:
+            r, g, b = s[1], s[2], s[3]
+            s = f"#{r}{r}{g}{g}{b}{b}"
+        return s.lower()
+    raise ValueError("Invalid color hex; expected #RGB or #RRGGBB")
+
 
 def _migrate_tool_ids(data: dict) -> dict:
     changed = False
@@ -176,6 +194,18 @@ def _migrate_tool_ids(data: dict) -> dict:
             it.setdefault("keywords", [])
             it.setdefault("url", "")
             it.setdefault("name", "")
+            # remove legacy logo field if present
+            if "logo" in it:
+                it.pop("logo", None); changed = True
+            # ensure color exists
+            if not it.get("color") or not isinstance(it.get("color"), str):
+                it["color"] = DEFAULT_TOOL_COLOR; changed = True
+            else:
+                # validate existing color, fallback if invalid
+                try:
+                    it["color"] = _validate_hex_color(it.get("color"))
+                except Exception:
+                    it["color"] = DEFAULT_TOOL_COLOR; changed = True
     if changed:
         save_tools(data)
     return data
@@ -633,26 +663,67 @@ def _parse_tags(raw: str) -> list[str]:
     return [p for p in parts if p]
 
 
+
+
 @app.route("/tools/item/add", methods=["POST"])
 def tools_item_add():
     name = (request.form.get("name") or "").strip()
     url_val = (request.form.get("url") or "").strip()
     cat_id = (request.form.get("category_id") or "").strip()
     tags_raw = (request.form.get("tags") or "").strip()
+    color_raw = (request.form.get("color") or "").strip()
     if not name or not url_val or not cat_id:
         return ("Missing required fields", 400)
     if not (url_val.startswith("http://") or url_val.startswith("https://")):
         return ("URL must start with http:// or https://", 400)
+    try:
+        color = _validate_hex_color(color_raw)
+    except ValueError as e:
+        return (str(e), 400)
     data = load_tools()
     cat = _find_category(data, cat_id)
     if cat is None:
         return ("Category not found", 400)
-    item = {"id": _new_id("itm"), "name": name, "url": url_val, "keywords": _parse_tags(tags_raw)}
+    item = {
+        "id": _new_id("itm"),
+        "name": name,
+        "url": url_val,
+        "keywords": _parse_tags(tags_raw),
+        "color": color,
+    }
     cat.setdefault("items", []).append(item)
     save_tools(data)
     resp = app.response_class("", status=204)
     resp.headers["HX-Redirect"] = url_for("tools_page")
     return resp
+
+
+@app.route("/tools/item/edit", methods=["GET"])
+def tools_item_edit():
+    item_id = (request.args.get("item_id") or "").strip()
+    cat_id = (request.args.get("category_id") or "").strip()
+    if not item_id or not cat_id:
+        return ("Missing item or category id", 400)
+    data = load_tools()
+    cat = _find_category(data, cat_id)
+    if cat is None:
+        return ("Category not found", 400)
+    item = next((it for it in cat.get("items", []) if it.get("id") == item_id), None)
+    if item is None:
+        # try find across categories in case moved
+        for c in data.get("categories", []):
+            item = next((it for it in c.get("items", []) if it.get("id") == item_id), None)
+            if item is not None:
+                cat = c
+                break
+    if item is None:
+        return ("Item not found", 404)
+    return render_template(
+        "partials/tool_item_edit.html",
+        item=item,
+        current_category_id=cat.get("id"),
+        categories=data.get("categories", []),
+    )
 
 
 @app.route("/tools/item/update", methods=["POST"])
@@ -663,12 +734,17 @@ def tools_item_update():
     name = (request.form.get("name") or "").strip()
     url_val = (request.form.get("url") or "").strip()
     tags_raw = (request.form.get("tags") or "").strip()
+    color_raw = (request.form.get("color") or "").strip()
     if not item_id or not from_cat_id:
         return ("Missing item or category id", 400)
     if not name or not url_val:
         return ("Missing name or url", 400)
     if not (url_val.startswith("http://") or url_val.startswith("https://")):
         return ("URL must start with http:// or https://", 400)
+    try:
+        color = _validate_hex_color(color_raw)
+    except ValueError as e:
+        return (str(e), 400)
     data = load_tools()
     from_cat = _find_category(data, from_cat_id)
     if from_cat is None:
@@ -693,6 +769,7 @@ def tools_item_update():
     it["name"] = name
     it["url"] = url_val
     it["keywords"] = _parse_tags(tags_raw)
+    it["color"] = color
     save_tools(data)
     resp = app.response_class("", status=204)
     resp.headers["HX-Redirect"] = url_for("tools_page")
@@ -723,13 +800,15 @@ def tools_category_delete():
     if not cat_id:
         return ("Missing category id", 400)
     data = load_tools()
-    cats = data.get("categories", [])
-    # Filter out the category by id
-    new_cats = [c for c in cats if c.get("id") != cat_id]
-    if len(new_cats) == len(cats):
-        # nothing removed; treat as not found
+    cat = _find_category(data, cat_id)
+    if cat is None:
         return ("Category not found", 404)
-    data["categories"] = new_cats
+    # Prevent deletion if category contains items
+    items = cat.get("items") or []
+    if len(items) > 0:
+        return ("Category not empty", 400)
+    # Delete the category
+    data["categories"] = [c for c in data.get("categories", []) if c.get("id") != cat_id]
     save_tools(data)
     resp = app.response_class("", status=204)
     resp.headers["HX-Redirect"] = url_for("tools_page")
