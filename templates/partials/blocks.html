@@ -4,7 +4,10 @@
     <div class="dp-muted">Time</div>
     <div class="dp-muted">Activity</div>
     {% for b in plan.blocks %}
-      <div class="dp-time">{{ b.time }} {% if sunrise and sunset %}{% if b.time >= sunrise and b.time < sunset %}<span class="text-warning" aria-label="day">&#9728;</span>{% else %}<span class="text-primary" aria-label="night">&#9790;</span>{% endif %}{% endif %}</div>
+      {% set hh = b.time.split(':')[0]|int %}
+      {% set mm = b.time.split(':')[1]|int %}
+      {% set row_class = 'dp-row-even-start' if (hh % 2 == 0 and mm == 0) else '' %}
+      <div class="dp-time {{ row_class }}">{{ b.time }} {% if sunrise and sunset %}{% if b.time >= sunrise and b.time < sunset %}<span class="text-warning" aria-label="day">&#9728;</span>{% else %}<span class="text-primary" aria-label="night">&#9790;</span>{% endif %}{% endif %}</div>
       {% set time_key = b.time %}
       {% set activity = b.activity %}
       {% include "partials/block_cell.html" %}

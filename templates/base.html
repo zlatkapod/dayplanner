@@ -57,6 +57,10 @@
     .dp-slot.empty { background: var(--dp-slot-empty-bg); }
     .dp-slot.filled { background: var(--dp-slot-filled-bg); border-color: var(--dp-slot-filled-border); }
 
+    /* Extra separation before even-hour rows (e.g., 10:00, 12:00, 14:00, ...) */
+    .dp-time.dp-row-even-start { margin-top: 6px; }
+    .dp-time.dp-row-even-start + .dp-slot { margin-top: 6px; }
+
     /* Block form */
     .dp-actions { display:grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items:center; }
     .dp-actions input[name="text"] { font-size: .9rem; padding: .375rem .5rem; background: var(--dp-card-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
@@ -75,6 +79,17 @@
 
     /* Focus */
     .dp-slot:focus-within { outline: 2px solid var(--dp-focus); outline-offset: 1px; }
+
+    /* Sticky aside (Todos/Goals) */
+    @media (min-width: 901px){
+      .dp-cols > aside {
+        position: sticky;
+        top: 8px;
+        align-self: start;
+        max-height: calc(100vh - 24px); /* keep within viewport */
+        overflow: auto;
+      }
+    }
   </style>
 </head>
 <body class="{{ 'theme-dark' if is_dark else 'theme-light' }}">
