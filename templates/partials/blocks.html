@@ -10,6 +10,7 @@
       <div class="dp-time {{ row_class }}">{{ b.time }} {% if sunrise and sunset %}{% if b.time >= sunrise and b.time < sunset %}<span class="text-warning" aria-label="day">&#9728;</span>{% else %}<span class="text-primary" aria-label="night">&#9790;</span>{% endif %}{% endif %}</div>
       {% set time_key = b.time %}
       {% set activity = b.activity %}
+      {% set important = b.important %}
       {% include "partials/block_cell.html" %}
     {% endfor %}
   </div>

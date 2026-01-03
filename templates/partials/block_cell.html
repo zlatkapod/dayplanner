@@ -1,11 +1,13 @@
 
-<div id="cell-{{ time_key|replace(':','') }}" class="dp-slot {{ 'filled' if activity else 'empty' }}" tabindex="0" role="group" aria-label="Block {{ time_key }}">
+<div id="cell-{{ time_key|replace(':','') }}" class="dp-slot {{ 'filled' if activity else 'empty' }} {{ 'important' if important else '' }}" tabindex="0" role="group" aria-label="Block {{ time_key }}">
   <form class="dp-actions" hx-post="/block" hx-target="#cell-{{ time_key|replace(':','') }}" hx-swap="outerHTML">
     <input type="hidden" name="date" value="{{ plan.date if plan is defined else '' }}"/>
     <input type="hidden" name="time" value="{{ time_key }}"/>
     <input name="text" class="form-control form-control-sm" placeholder="Describe activity…" value="{{ activity }}" />
-    <button type="submit" class="btn btn-primary btn-sm">Set</button>
-    <button class="btn btn-outline-secondary btn-sm" hx-post="/block/clear" hx-include="closest form" hx-target="#cell-{{ time_key|replace(':','') }}" hx-swap="outerHTML" type="button">Clear</button>
+    <div class="d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm">Set</button>
+      <button type="button" class="btn btn-important btn-sm" title="Mark important" aria-pressed="{{ 'true' if important else 'false' }}" hx-post="/block/toggle_important" hx-include="closest form" hx-target="#cell-{{ time_key|replace(':','') }}" hx-swap="outerHTML">!</button>
+    </div>
   </form>
   {% if activity %}
     <div class="dp-muted mt-1">Scheduled: {{ activity }}</div>

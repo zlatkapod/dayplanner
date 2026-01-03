@@ -62,7 +62,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
     dt = datetime.combine(day, start)
     dt_end = datetime.combine(day, end)
     while dt < dt_end:
-        slots.append({"time": dt.strftime("%H:%M"), "activity": ""})
+        slots.append({"time": dt.strftime("%H:%M"), "activity": "", "important": False})
         dt += timedelta(minutes=20)
     plan = {
         "date": date_str(day),
@@ -74,12 +74,16 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
     }
     # if existing provided, try to keep activities where times still exist
     if existing:
-        existing_acts = {b["time"]: b.get("activity","") for b in existing.get("blocks",[])}
+        existing_acts = {b["time"]: b.get("activity", "") for b in existing.get("blocks", [])}
+        existing_imp = {b["time"]: bool(b.get("important", False)) for b in existing.get("blocks", [])}
         plan["todos"] = existing.get("todos", [])
         plan["note"] = existing.get("note", existing.get("notes", ""))
         for b in plan["blocks"]:
-            if b["time"] in existing_acts:
-                b["activity"] = existing_acts[b["time"]]
+            t = b["time"]
+            if t in existing_acts:
+                b["activity"] = existing_acts[t]
+            if t in existing_imp:
+                b["important"] = existing_imp[t]
     return plan
 
 def load_plan(day: date_cls) -> dict:
@@ -465,27 +469,34 @@ def set_block():
     time_key = request.form.get("time")
     text = (request.form.get("text") or "").strip()
     plan = load_plan(day)
+    important = False
     for b in plan["blocks"]:
         if b["time"] == time_key:
             b["activity"] = text
+            important = bool(b.get("important", False))
             break
     save_plan(day, plan)
     # Return just this single block cell (wrapped) for swap
     sunrise, sunset = get_sun_times(day)
-    return render_template("partials/block_cell.html", time_key=time_key, activity=text, plan=plan, sunrise=sunrise, sunset=sunset)
+    return render_template("partials/block_cell.html", time_key=time_key, activity=text, important=important, plan=plan, sunrise=sunrise, sunset=sunset)
 
-@app.route("/block/clear", methods=["POST"])
-def clear_block():
+@app.route("/block/toggle_important", methods=["POST"])
+def toggle_important():
     day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
     time_key = request.form.get("time")
     plan = load_plan(day)
+    activity = ""
+    important = False
     for b in plan["blocks"]:
         if b["time"] == time_key:
-            b["activity"] = ""
+            # flip
+            b["important"] = not bool(b.get("important", False))
+            important = b["important"]
+            activity = b.get("activity", "")
             break
     save_plan(day, plan)
     sunrise, sunset = get_sun_times(day)
-    return render_template("partials/block_cell.html", time_key=time_key, activity="", plan=plan, sunrise=sunrise, sunset=sunset)
+    return render_template("partials/block_cell.html", time_key=time_key, activity=activity, important=important, plan=plan, sunrise=sunrise, sunset=sunset)
 
 @app.route("/tools", methods=["GET"])
 def tools_page():

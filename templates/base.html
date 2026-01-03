@@ -56,6 +56,23 @@
     .dp-slot { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--bs-border-color); background: var(--dp-card-bg); }
     .dp-slot.empty { background: var(--dp-slot-empty-bg); }
     .dp-slot.filled { background: var(--dp-slot-filled-bg); border-color: var(--dp-slot-filled-border); }
+    /* Important highlight */
+    .dp-slot.important { background: #fff5e6; border-color: #ffcc80; }
+    .theme-dark .dp-slot.important { background: #2a1f10; border-color: #5a3b14; }
+
+    /* Important toggle button */
+    .btn-important {
+      --btn-bg: #ff9800;
+      --btn-border: #ff9800;
+      --btn-color: #1b1b1b;
+      background-color: var(--btn-bg);
+      border-color: var(--btn-border);
+      color: var(--btn-color);
+      line-height: 1;
+      padding-left: .45rem; padding-right: .45rem;
+    }
+    .btn-important:hover { background-color: #fb8c00; border-color: #fb8c00; color: #111; }
+    .btn-important[aria-pressed="true"] { background-color: #ef6c00; border-color: #ef6c00; color: white; }
 
     /* Extra separation before even-hour rows (e.g., 10:00, 12:00, 14:00, ...) */
     .dp-time.dp-row-even-start { margin-top: 6px; }
