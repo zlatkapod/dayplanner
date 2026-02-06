@@ -21,6 +21,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOOLS_PATH = DATA_DIR / "tools.json"
 QNA_PATH = DATA_DIR / "qna.json"
 SUBSCRIPTIONS_PATH = DATA_DIR / "subscriptions.json"
+TOPICS_PATH = DATA_DIR / "topics.json"
 
 # --- Timezone helper ---
 
@@ -78,6 +79,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         existing_imp = {b["time"]: bool(b.get("important", False)) for b in existing.get("blocks", [])}
         plan["todos"] = existing.get("todos", [])
         plan["note"] = existing.get("note", existing.get("notes", ""))
+        plan["topic"] = existing.get("topic", "")
         for b in plan["blocks"]:
             t = b["time"]
             if t in existing_acts:
@@ -106,6 +108,39 @@ import secrets, re
 
 def _new_id(prefix: str = "t") -> str:
     return f"{prefix}_{secrets.token_hex(4)}"
+
+# --- Topics data helpers ---
+
+def default_topics() -> dict:
+    return {
+        "topics": [
+            # {"id": _new_id("tp"), "text": "Read about deep work", "category": "Productivity", "created": "2026-01-01"}
+        ]
+    }
+
+
+def load_topics() -> dict:
+    if TOPICS_PATH.exists():
+        try:
+            with open(TOPICS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = default_topics()
+    else:
+        data = default_topics()
+    data.setdefault("topics", [])
+    # normalize: ensure fields exist
+    for t in data["topics"]:
+        t.setdefault("id", _new_id("tp"))
+        t.setdefault("text", "")
+        t.setdefault("category", "Unsorted")
+        t.setdefault("created", datetime.now(get_configured_tz()).date().strftime("%Y-%m-%d"))
+    return data
+
+
+def save_topics(data: dict) -> None:
+    with open(TOPICS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 # --- Q&A data helpers ---
 
@@ -421,6 +456,33 @@ def move_todo_next_day():
     # Always return updated today's todos
     return render_template("partials/todos.html", plan=plan_today)
 
+@app.route("/todo/done", methods=["POST"])
+def mark_todo_done():
+    """Mark a todo as done: move it to the end of the list and mark visually.
+    Expects form fields: date (YYYY-MM-DD), index (0-based).
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+
+    plan = load_plan(day)
+    todos = plan.get("todos", [])
+    if 0 <= idx < len(todos):
+        item = todos.pop(idx)
+        # If not already marked, prefix with a check mark and a space
+        if not (isinstance(item, str) and item.startswith("✓ ")):
+            item = f"✓ {item}".strip()
+        # Append to end
+        todos.append(item)
+        plan["todos"] = todos
+        save_plan(day, plan)
+    return render_template("partials/todos.html", plan=plan)
+
 @app.route("/todo/reorder_all", methods=["POST"])
 def reorder_all_todos():
     """Replace the entire order of the todo list for a given day.
@@ -460,6 +522,22 @@ def save_note():
     text = (request.form.get("text") or "")
     plan = load_plan(day)
     plan["note"] = text
+    save_plan(day, plan)
+    return ("", 204)
+
+@app.route("/topic", methods=["POST"])
+def save_topic():
+    """Autosave the 'Topic of the Day' field.
+    Expects form fields: date (YYYY-MM-DD), topic (string).
+    Returns 204 No Content for HTMX.
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    topic = (request.form.get("topic") or "").strip()
+    plan = load_plan(day)
+    plan["topic"] = topic
     save_plan(day, plan)
     return ("", 204)
 
@@ -507,6 +585,64 @@ def tools_page():
     tools = load_tools()
     return render_template("tools.html", tools=tools, is_dark=is_dark)
 
+# --- Topics routes ---
+
+@app.route("/topics", methods=["GET"])
+def topics_page():
+    tz = get_configured_tz()
+    today = datetime.now(tz).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
+    data = load_topics()
+    items = data.get("topics", [])
+    # group by category
+    grouped = {}
+    for t in items:
+        cat = (t.get("category") or "Unsorted").strip() or "Unsorted"
+        grouped.setdefault(cat, []).append(t)
+    # sort categories alphabetically, items by created desc then text
+    for cat, arr in grouped.items():
+        arr.sort(key=lambda x: (x.get("created", ""), x.get("text", "")))
+        arr.reverse()
+    categories = sorted(grouped.keys(), key=lambda s: s.lower())
+    return render_template("topics.html", grouped=grouped, categories=categories, is_dark=is_dark, today=date_str(today))
+
+@app.route("/topics/add", methods=["POST"]) 
+def topics_add():
+    text = (request.form.get("text") or "").strip()
+    category = (request.form.get("category") or "Unsorted").strip() or "Unsorted"
+    if not text:
+        return ("Missing topic text", 400)
+    tz = get_configured_tz()
+    created = datetime.now(tz).date().strftime("%Y-%m-%d")
+    data = load_topics()
+    data.setdefault("topics", []).append({
+        "id": _new_id("tp"),
+        "text": text,
+        "category": category,
+        "created": created,
+    })
+    save_topics(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("topics_page")
+    return resp
+
+@app.route("/topics/delete", methods=["POST"]) 
+def topics_delete():
+    tid = (request.form.get("id") or "").strip()
+    if not tid:
+        return ("Missing id", 400)
+    data = load_topics()
+    arr = data.get("topics", [])
+    new_arr = [t for t in arr if t.get("id") != tid]
+    if len(new_arr) == len(arr):
+        return ("Not found", 404)
+    data["topics"] = new_arr
+    save_topics(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("topics_page")
+    return resp
+
 # --- Subscriptions routes ---
 
 @app.route("/subscriptions", methods=["GET"])
@@ -538,18 +674,101 @@ def subscriptions_page():
             days_abs = abs(delta)
         annotated.append({**s, "_delta": delta, "_future": future, "_days_abs": days_abs})
 
-    # Sorting: active upcoming by soonest (delta asc), then active overdue (abs delta asc), then inactive with same rules
+    # Sorting helper: group future first; then by delta/abs(delta); then name
     def sort_key(s: dict):
-        active_rank = 0 if s.get("is_active", True) else 1
-        # group future first inside active/inactive
         future_group = 0 if s.get("_future", True) else 1
-        # within future group sort by delta asc; within past group by abs(delta) asc
         primary = s.get("_delta", 10**9) if future_group == 0 else s.get("_days_abs", 10**9)
-        return (active_rank, future_group, primary, s.get("name", ""))
+        return (future_group, primary, s.get("name", ""))
 
-    annotated.sort(key=sort_key)
+    active_subs = [s for s in annotated if s.get("is_active", True)]
+    inactive_subs = [s for s in annotated if not s.get("is_active", True)]
+    active_subs.sort(key=sort_key)
+    inactive_subs.sort(key=sort_key)
 
-    return render_template("subscriptions.html", subs=annotated, is_dark=is_dark, today=date_str(today))
+    return render_template("subscriptions.html", subs_active=active_subs, subs_inactive=inactive_subs, is_dark=is_dark, today=date_str(today))
+
+@app.route("/subscriptions/toggle", methods=["POST"]) 
+def subscriptions_toggle():
+    sid = (request.form.get("id") or "").strip()
+    is_active_raw = request.form.get("is_active")
+    data = load_subscriptions()
+    subs = data.get("subscriptions", [])
+    target = None
+    for s in subs:
+        if s.get("id") == sid:
+            target = s
+            break
+    if not target:
+        return ("Subscription not found", 404)
+
+    if is_active_raw is None:
+        target["is_active"] = not bool(target.get("is_active", True))
+    else:
+        val = str(is_active_raw).strip().lower()
+        target["is_active"] = val in ("1", "true", "on", "yes")
+
+    save_subscriptions(data)
+
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("subscriptions_page")
+    return resp
+
+@app.route("/subscriptions/delete", methods=["POST"])
+def subscriptions_delete():
+    sid = (request.form.get("id") or "").strip()
+    data = load_subscriptions()
+    subs = data.get("subscriptions", [])
+    new_subs = [s for s in subs if s.get("id") != sid]
+    if len(new_subs) == len(subs):
+        return ("Subscription not found", 404)
+    data["subscriptions"] = new_subs
+    save_subscriptions(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("subscriptions_page")
+    return resp
+
+@app.route("/subscriptions/update", methods=["POST"])
+def subscriptions_update():
+    sid = (request.form.get("id") or "").strip()
+    name = (request.form.get("name") or "").strip()
+    url_val = (request.form.get("url") or "").strip()
+    renewal_date = (request.form.get("renewal_date") or "").strip()
+    price_raw = (request.form.get("price") or "").strip()
+    is_active_raw = request.form.get("is_active")
+
+    if not name:
+        return ("Missing name", 400)
+    try:
+        datetime.strptime(renewal_date, "%Y-%m-%d")
+    except Exception:
+        return ("Bad renewal date; expected YYYY-MM-DD", 400)
+    try:
+        price = float(price_raw) if price_raw != "" else 0.0
+    except Exception:
+        return ("Price must be a number", 400)
+
+    data = load_subscriptions()
+    subs = data.get("subscriptions", [])
+    target = None
+    for s in subs:
+        if s.get("id") == sid:
+            target = s
+            break
+    if not target:
+        return ("Subscription not found", 404)
+
+    target["name"] = name
+    target["url"] = url_val
+    target["renewal_date"] = renewal_date
+    target["price"] = price
+    if is_active_raw is not None:
+        val = str(is_active_raw).strip().lower()
+        target["is_active"] = val in ("1", "true", "on", "yes")
+
+    save_subscriptions(data)
+    resp = app.response_class("", status=204)
+    resp.headers["HX-Redirect"] = url_for("subscriptions_page")
+    return resp
 
 @app.route("/subscriptions/add", methods=["POST"])
 def subscriptions_add():

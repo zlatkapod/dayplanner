@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dp-header">
+  <div>
+    <div class="dp-brand text-uppercase">Topics</div>
+    <div class="dp-muted">Capture ideas to explore later. Add a topic and an optional category; items are grouped by category.</div>
+  </div>
+</div>
+
+<div class="dp-cols" style="grid-template-columns: 1fr 1.2fr;">
+  <!-- Add new topic -->
+  <section>
+    <h6 class="text-uppercase text-muted mb-2">Add Topic</h6>
+    <form class="mb-3" hx-post="/topics/add" hx-swap="none" hx-on::after-request="this.reset()">
+      <div class="row g-2">
+        <div class="col-12">
+          <input name="text" class="form-control form-control-sm" placeholder="Topic (e.g., Read about event loops)" required />
+        </div>
+        <div class="col-12 col-md-6">
+          <input name="category" class="form-control form-control-sm" placeholder="Category (e.g., Programming)" />
+        </div>
+        <div class="col-12 d-grid">
+          <button class="btn btn-primary btn-sm" type="submit">Add</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- List topics grouped by category -->
+  <section>
+    <h6 class="text-uppercase text-muted mb-2">Topics by category</h6>
+
+    {% if categories|length == 0 %}
+      <div class="dp-slot">No topics yet. Add your first one above.</div>
+    {% endif %}
+
+    <div class="vstack gap-3">
+      {% for cat in categories %}
+        <div>
+          <div class="fw-semibold mb-2">{{ cat }}</div>
+          <div class="vstack gap-2">
+            {% for t in grouped[cat] %}
+              <div class="dp-slot">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div class="me-auto">
+                    <div class="fw-semibold">{{ t.text }}</div>
+                    <div class="dp-muted small mt-1">Added on {{ t.created }}</div>
+                  </div>
+                  <div class="text-nowrap d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-danger btn-sm"
+                            hx-post="/topics/delete"
+                            hx-vals='{"id": "{{ t.id }}"}'
+                            hx-swap="none"
+                            title="Delete">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}

@@ -141,6 +141,7 @@ Example `data/2025-09-28.json`:
 ```json
 {
   "date": "2025-09-28",
+  "topic": "Quantum Computing basics",
   "start": "09:00",
   "end": "21:00",
   "todos": ["Deep work", "Groceries"],

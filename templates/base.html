@@ -47,7 +47,7 @@
     .dp-nav a { padding: .125rem .5rem; font-size: .8rem; }
 
     /* Two columns */
-    .dp-cols { display:grid; grid-template-columns: 1fr 320px; gap: 12px; align-items:start; }
+    .dp-cols { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items:start; }
     @media (max-width: 900px){ .dp-cols { grid-template-columns: 1fr; } }
 
     /* Blocks grid */
@@ -116,6 +116,7 @@
       <a href="{{ url_for('qna_page') }}" class="text-decoration-none">Q&amp;A</a>
       <a href="{{ url_for('tools_page') }}" class="text-decoration-none">Tools</a>
       <a href="{{ url_for('subscriptions_page') }}" class="text-decoration-none">Subscriptions</a>
+      <a href="{{ url_for('topics_page') }}" class="text-decoration-none">Topics</a>
     </nav>
   </header>
   <main class="dp-container">
