@@ -293,6 +293,7 @@ def load_subscriptions() -> dict:
         s.setdefault("url", "")
         s.setdefault("renewal_date", "")  # YYYY-MM-DD
         s.setdefault("is_active", True)
+        s.setdefault("category", "Personal")
         # price stored as float
         try:
             s["price"] = float(s.get("price", 0) or 0)
@@ -414,7 +415,15 @@ def add_todo():
         except ValueError:
             pass  # ignore invalid minutes input
     if txt:
-        plan["todos"].append(txt)
+        todos = plan.get("todos", [])
+        # Find the first index of a "done" todo
+        insert_idx = len(todos)
+        for i, todo in enumerate(todos):
+            if isinstance(todo, str) and todo.startswith("✓ "):
+                insert_idx = i
+                break
+        todos.insert(insert_idx, txt)
+        plan["todos"] = todos
         save_plan(day, plan)
     return render_template("partials/todos.html", plan=plan)
 
@@ -446,21 +455,28 @@ def move_todo_next_day():
     plan_today = load_plan(day)
     if 0 <= idx < len(plan_today.get("todos", [])):
         # Remove from today
-        todo_text = plan_today["todos"].pop(idx)
+        todos_today = plan_today["todos"]
+        todo_text = todos_today.pop(idx)
         save_plan(day, plan_today)
+        
         # Add to next day
         next_day = day + timedelta(days=1)
         plan_tomorrow = load_plan(next_day)
-        plan_tomorrow.setdefault("todos", []).append(todo_text)
+        todos_tomorrow = plan_tomorrow.setdefault("todos", [])
+        
+        # Insert at the correct position (before first done)
+        insert_idx = len(todos_tomorrow)
+        for i, t in enumerate(todos_tomorrow):
+            if isinstance(t, str) and t.startswith("✓ "):
+                insert_idx = i
+                break
+        todos_tomorrow.insert(insert_idx, todo_text)
         save_plan(next_day, plan_tomorrow)
     # Always return updated today's todos
     return render_template("partials/todos.html", plan=plan_today)
 
 @app.route("/todo/done", methods=["POST"])
 def mark_todo_done():
-    """Mark a todo as done: move it to the end of the list and mark visually.
-    Expects form fields: date (YYYY-MM-DD), index (0-based).
-    """
     try:
         day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
     except Exception:
@@ -538,8 +554,27 @@ def save_topic():
     topic = (request.form.get("topic") or "").strip()
     plan = load_plan(day)
     plan["topic"] = topic
+    if topic:
+        plan["topic_locked"] = True
     save_plan(day, plan)
-    return ("", 204)
+    # Return the topic partial or just 204.
+    # To update the UI (lock it), it's better to return the partial or a redirect.
+    # But since we want to lock it after submission, returning 204 might not be enough
+    # if we want the input to become readonly immediately without a full refresh.
+    # Given the hx-trigger="input changed delay:600ms, submit", 
+    # we might need to return the updated partial.
+    return render_template("partials/topic_input.html", plan=plan)
+
+@app.route("/topic/toggle_lock", methods=["POST"])
+def toggle_topic_lock():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format")
+    plan = load_plan(day)
+    plan["topic_locked"] = not bool(plan.get("topic_locked", False))
+    save_plan(day, plan)
+    return render_template("partials/topic_input.html", plan=plan)
 
 @app.route("/block", methods=["POST"])
 def set_block():
@@ -643,6 +678,16 @@ def topics_delete():
     resp.headers["HX-Redirect"] = url_for("topics_page")
     return resp
 
+# --- WordCount routes ---
+
+@app.route("/wordcount", methods=["GET"])
+def wordcount_page():
+    tz = get_configured_tz()
+    today = datetime.now(tz).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
+    return render_template("wordcount.html", is_dark=is_dark)
+
 # --- Subscriptions routes ---
 
 @app.route("/subscriptions", methods=["GET"])
@@ -735,6 +780,7 @@ def subscriptions_update():
     renewal_date = (request.form.get("renewal_date") or "").strip()
     price_raw = (request.form.get("price") or "").strip()
     is_active_raw = request.form.get("is_active")
+    category = (request.form.get("category") or "Personal").strip()
 
     if not name:
         return ("Missing name", 400)
@@ -761,6 +807,7 @@ def subscriptions_update():
     target["url"] = url_val
     target["renewal_date"] = renewal_date
     target["price"] = price
+    target["category"] = category
     if is_active_raw is not None:
         val = str(is_active_raw).strip().lower()
         target["is_active"] = val in ("1", "true", "on", "yes")
@@ -777,6 +824,7 @@ def subscriptions_add():
     renewal_date = (request.form.get("renewal_date") or "").strip()
     is_active_raw = request.form.get("is_active")
     price_raw = (request.form.get("price") or "").strip()
+    category = (request.form.get("category") or "Personal").strip()
 
     if not name:
         return ("Missing name", 400)
@@ -804,6 +852,7 @@ def subscriptions_add():
         "renewal_date": renewal_date,
         "is_active": is_active,
         "price": price,
+        "category": category,
     })
     save_subscriptions(data)
 

@@ -29,6 +29,12 @@
             <input name="price" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
           </div>
         </div>
+        <div class="col-6 col-md-4">
+          <select name="category" class="form-select form-select-sm">
+            <option value="Personal" selected>Personal</option>
+            <option value="Business">Business</option>
+          </select>
+        </div>
         <div class="col-12 col-md-4 d-flex align-items-center gap-2">
           <input id="is_active" name="is_active" type="checkbox" class="form-check-input" checked />
           <label for="is_active" class="form-check-label">Active</label>
@@ -57,6 +63,7 @@
                 {% else %}
                   <span class="fw-semibold">{{ s.name }}</span>
                 {% endif %}
+                <span class="badge {{ 'text-bg-info' if s.category == 'Business' else 'text-bg-light border' }}" style="font-size: 0.7rem;">{{ s.category }}</span>
               </div>
               <div class="dp-muted small mt-1">
                 Renews on <strong>{{ s.renewal_date }}</strong>
@@ -95,6 +102,12 @@
                     <input name="price" type="number" step="0.01" min="0" class="form-control" value="{{ '%.2f'|format(s.price or 0) }}" />
                   </div>
                 </div>
+                <div class="col-6">
+                  <select name="category" class="form-select form-select-sm">
+                    <option value="Personal" {{ 'selected' if s.category == 'Personal' else '' }}>Personal</option>
+                    <option value="Business" {{ 'selected' if s.category == 'Business' else '' }}>Business</option>
+                  </select>
+                </div>
                 <div class="col-12 d-flex gap-2">
                   <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Save</button>
                   <button type="button" class="btn btn-outline-secondary btn-sm" onclick="this.closest('.dp-slot').querySelector('.edit-form').classList.toggle('d-none'); this.closest('.dp-slot').querySelector('.view-content').classList.toggle('d-none')">Cancel</button>
@@ -121,6 +134,7 @@
                 {% else %}
                   <span class="fw-semibold">{{ s.name }}</span>
                 {% endif %}
+                <span class="badge {{ 'text-bg-info' if s.category == 'Business' else 'text-bg-light border' }}" style="font-size: 0.7rem;">{{ s.category }}</span>
                 <span class="badge text-bg-secondary">Inactive</span>
               </div>
               <div class="dp-muted small mt-1">

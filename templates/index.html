@@ -28,14 +28,7 @@
   <aside>
     <div class="mb-3">
       <h6 class="text-uppercase text-muted mb-2">Topic of the Day</h6>
-      <form hx-post="/topic" hx-trigger="input changed delay:600ms, submit" hx-swap="none">
-        <input type="hidden" name="date" value="{{ plan.date }}"/>
-        <input name="topic" 
-               class="form-control form-control-sm" 
-               placeholder="What are you thinking about today?" 
-               value="{{ plan.topic or '' }}"
-               hx-on::after-request="if(event.detail.successful) this.blur()"/>
-      </form>
+      {% include "partials/topic_input.html" %}
     </div>
 
     <h6 class="text-uppercase text-muted mb-2">Today's To‑Dos</h6>

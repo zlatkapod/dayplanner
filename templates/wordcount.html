@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dp-header">
+  <div>
+    <div class="dp-brand text-uppercase">WordCount</div>
+    <div class="dp-muted">Simple tool to count words in your text. No data is stored.</div>
+  </div>
+</div>
+
+<div class="dp-slot">
+  <div class="mb-3">
+    <label for="wordcount-input" class="form-label fw-semibold text-uppercase text-muted small">Input Text</label>
+    <textarea id="wordcount-input" class="form-control" rows="12" placeholder="Paste or type your text here..." oninput="updateWordCount()"></textarea>
+  </div>
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="dp-muted">
+      Words: <span id="word-count" class="fw-bold text-primary">0</span>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" onclick="clearText()">Clear</button>
+  </div>
+</div>
+
+<script>
+function updateWordCount() {
+  const text = document.getElementById('wordcount-input').value.trim();
+  const count = text ? text.split(/\s+/).length : 0;
+  document.getElementById('word-count').innerText = count;
+}
+
+function clearText() {
+  document.getElementById('wordcount-input').value = '';
+  updateWordCount();
+}
+</script>
+
+{% endblock %}

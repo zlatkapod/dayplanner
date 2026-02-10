@@ -1,0 +1,23 @@
+<form hx-post="/topic" hx-trigger="input changed delay:600ms, submit" hx-swap="outerHTML" id="topic-form" class="d-flex gap-1 align-items-center">
+  <input type="hidden" name="date" value="{{ plan.date }}"/>
+  <input name="topic" 
+         class="form-control form-control-sm" 
+         placeholder="What are you thinking about today?" 
+         value="{{ plan.topic or '' }}"
+         {% if plan.topic_locked %}readonly{% endif %}
+         {% if plan.topic_locked %}style="background-color: var(--bs-secondary-bg); cursor: not-allowed;"{% endif %}
+         hx-on::after-request="if(event.detail.successful) this.blur()"/>
+  <button type="button" 
+          class="btn btn-sm {% if plan.topic_locked %}btn-warning{% else %}btn-outline-secondary{% endif %}"
+          hx-post="/topic/toggle_lock"
+          hx-vals='{"date": "{{ plan.date }}"}'
+          hx-target="#topic-form"
+          hx-swap="outerHTML"
+          title="{% if plan.topic_locked %}Unlock Topic{% else %}Lock Topic{% endif %}">
+    {% if plan.topic_locked %}
+    <span style="font-size: 0.8rem;">🔒</span>
+    {% else %}
+    <span style="font-size: 0.8rem;">🔓</span>
+    {% endif %}
+  </button>
+</form>

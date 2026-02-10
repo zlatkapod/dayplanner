@@ -24,6 +24,14 @@ python app.py
 
 Open http://localhost:8383 in your browser.
 
+## Running Tests
+
+To run the automated tests, ensure you have the dependencies installed and run:
+
+```bash
+python -m pytest tests/
+```
+
 ### Configure timezone (optional but recommended)
 To ensure sunrise/sunset and the selected default date use your local timezone when running in Docker or servers set to UTC, set one of:
 
