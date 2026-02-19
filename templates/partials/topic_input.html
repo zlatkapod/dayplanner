@@ -5,7 +5,7 @@
          placeholder="What are you thinking about today?" 
          value="{{ plan.topic or '' }}"
          {% if plan.topic_locked %}readonly{% endif %}
-         {% if plan.topic_locked %}style="background-color: var(--bs-secondary-bg); cursor: not-allowed;"{% endif %}
+         {% if plan.topic_locked %}style="cursor: not-allowed;"{% endif %}
          hx-on::after-request="if(event.detail.successful) this.blur()"/>
   <button type="button" 
           class="btn btn-sm {% if plan.topic_locked %}btn-warning{% else %}btn-outline-secondary{% endif %}"

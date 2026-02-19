@@ -554,15 +554,7 @@ def save_topic():
     topic = (request.form.get("topic") or "").strip()
     plan = load_plan(day)
     plan["topic"] = topic
-    if topic:
-        plan["topic_locked"] = True
     save_plan(day, plan)
-    # Return the topic partial or just 204.
-    # To update the UI (lock it), it's better to return the partial or a redirect.
-    # But since we want to lock it after submission, returning 204 might not be enough
-    # if we want the input to become readonly immediately without a full refresh.
-    # Given the hx-trigger="input changed delay:600ms, submit", 
-    # we might need to return the updated partial.
     return render_template("partials/topic_input.html", plan=plan)
 
 @app.route("/topic/toggle_lock", methods=["POST"])
