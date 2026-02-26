@@ -35,17 +35,6 @@ def test_delete_topic(client):
     data = app_module.load_topics()
     assert not any(t["text"] == "To be deleted" for t in data["topics"])
 
-def test_qna_page(client):
-    response = client.get("/qna")
-    assert response.status_code == 200
-    assert b"Q&A Inbox" in response.data
-
-def test_add_qna_question(client):
-    response = client.post("/qna/question/add", data={
-        "text": "What is life?"
-    })
-    assert response.status_code == 200
-    assert b"What is life?" in response.data
 
 def test_tools_page(client):
     response = client.get("/tools")

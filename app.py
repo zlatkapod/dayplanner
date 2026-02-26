@@ -19,7 +19,6 @@ logger = logging.getLogger("dayplanner")
 DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOOLS_PATH = DATA_DIR / "tools.json"
-QNA_PATH = DATA_DIR / "qna.json"
 SUBSCRIPTIONS_PATH = DATA_DIR / "subscriptions.json"
 TOPICS_PATH = DATA_DIR / "topics.json"
 
@@ -144,35 +143,6 @@ def save_topics(data: dict) -> None:
     with open(TOPICS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-# --- Q&A data helpers ---
-
-def default_qna() -> dict:
-    return {
-        "questions": [
-            # {"id": _new_id("q"), "text": "Example: Research gardening soil pH"}
-        ],
-        "links": [
-            # {"id": _new_id("lnk"), "name": "ChatGPT thread about fasting", "url": "https://chat.openai.com/..."}
-        ],
-    }
-
-def load_qna() -> dict:
-    if QNA_PATH.exists():
-        try:
-            with open(QNA_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            data = default_qna()
-    else:
-        data = default_qna()
-    # normalize
-    data.setdefault("questions", [])
-    data.setdefault("links", [])
-    return data
-
-def save_qna(data: dict) -> None:
-    with open(QNA_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
 
 def default_tools() -> dict:
     return {
@@ -896,62 +866,6 @@ def subscriptions_add():
     resp.headers["HX-Redirect"] = url_for("subscriptions_page")
     return resp
 
-# --- Q&A routes ---
-
-@app.route("/qna", methods=["GET"])
-def qna_page():
-    # Theme context uses today
-    today = datetime.now(get_configured_tz()).date()
-    sunrise, sunset = get_sun_times(today)
-    is_dark = is_dark_mode(today, sunrise, sunset)
-    qna = load_qna()
-    return render_template("qna.html", qna=qna, is_dark=is_dark)
-
-@app.route("/qna/question/add", methods=["POST"])
-def qna_add_question():
-    text = (request.form.get("text") or "").strip()
-    if not text:
-        return ("Missing text", 400)
-    data = load_qna()
-    # prepend
-    data.setdefault("questions", []).insert(0, {"id": _new_id("q"), "text": text})
-    save_qna(data)
-    return render_template("partials/qna_questions.html", qna=data)
-
-@app.route("/qna/question/delete", methods=["POST"])
-def qna_delete_question():
-    qid = (request.form.get("id") or "").strip()
-    data = load_qna()
-    qs = data.setdefault("questions", [])
-    idx = next((i for i, q in enumerate(qs) if q.get("id") == qid), -1)
-    if idx >= 0:
-        qs.pop(idx)
-        save_qna(data)
-    return render_template("partials/qna_questions.html", qna=data)
-
-@app.route("/qna/link/add", methods=["POST"])
-def qna_add_link():
-    name = (request.form.get("name") or "").strip()
-    url_val = (request.form.get("url") or "").strip()
-    if not name or not url_val:
-        return ("Missing name or url", 400)
-    if not (url_val.startswith("http://") or url_val.startswith("https://")):
-        return ("URL must start with http:// or https://", 400)
-    data = load_qna()
-    data.setdefault("links", []).insert(0, {"id": _new_id("lnk"), "name": name, "url": url_val})
-    save_qna(data)
-    return render_template("partials/qna_links.html", qna=data)
-
-@app.route("/qna/link/delete", methods=["POST"])
-def qna_delete_link():
-    lid = (request.form.get("id") or "").strip()
-    data = load_qna()
-    ls = data.setdefault("links", [])
-    idx = next((i for i, l in enumerate(ls) if l.get("id") == lid), -1)
-    if idx >= 0:
-        ls.pop(idx)
-        save_qna(data)
-    return render_template("partials/qna_links.html", qna=data)
 
 @app.route("/tools/category/add", methods=["POST"])
 def tools_add_category():

@@ -7,15 +7,12 @@
   .theme-dark #tools-page a { color: #d1d5db; }
   #tools-page a:hover { text-decoration: underline; }
 
-  .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  @media (max-width: 992px) { .tool-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 600px) { .tool-grid { grid-template-columns: 1fr; } }
-
-  .tool-card { border:1px solid var(--bs-border-color); background: var(--dp-card-bg); border-radius: 10px; padding: 8px; display: grid; grid-template-rows: auto 1fr auto; aspect-ratio: 1 / 1; border-left: 12px solid var(--stripe, #9ca3af); }
-  .tool-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .tool-name { font-weight:600; line-height:1.2; }
-  .tool-tags { margin-top: 6px; }
-  .tool-actions { display:flex; gap:6px; justify-content:flex-end; }
+  .tool-list { list-style: none; margin: 0; padding: 0; }
+  .tool-list-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .tool-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .tool-name { font-weight: 600; line-height: 1.2; }
+  .tool-tags { display: inline-flex; gap: 4px; margin-left: 8px; }
+  .tool-actions { display: flex; gap: 6px; margin-left: auto; }
 
   /* Category list link color override */
   #tools-categories a { color: #343a40; }
@@ -96,57 +93,52 @@
     {% for cat in tools.categories %}
       <div id="cat-{{ cat.id }}" class="mb-4">
         <h5 class="mb-3">{{ cat.name }}</h5>
-        <div class="tool-grid">
+        <ul class="tool-list">
           {% for item in cat['items'] %}
-            <div class="tool-card" style="--stripe: {{ item.color or '#9ca3af' }};">
-              <div class="tool-header">
-                <div class="d-flex align-items-center gap-2">
-                  <div>
-                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="tool-name text-decoration-none">{{ item.name }}</a>
-                    {% if item.keywords %}
-                      <div class="tool-tags small mt-1">
-                        {% for k in item.keywords %}
-                          <span class="badge text-bg-secondary me-1">{{ k }}</span>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
-                  </div>
-                </div>
-                <div class="tool-actions">
-                  <a
-                    href="javascript:void(0)"
-                    role="button"
-                    class="btn btn-outline-secondary btn-sm"
-                    hx-get="/tools/item/edit?item_id={{ item.id }}&category_id={{ cat.id }}"
-                    hx-target="#toolEditModal .modal-content"
-                    hx-swap="innerHTML"
-                    hx-on:htmx:afterSwap="new bootstrap.Modal(document.getElementById('toolEditModal')).show()"
-                    data-bs-toggle="modal"
-                    data-bs-target="#toolEditModal"
-                    title="Edit"
-                    aria-label="Edit">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83l3.75 3.75l1.99-1.66Z"/></svg>
-                  </a>
-                  <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
-                    <input type="hidden" name="item_id" value="{{ item.id }}"/>
-                    <input type="hidden" name="category_id" value="{{ cat.id }}"/>
-                    <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M4 7h16"/>
-                          <path d="M10 11v6"/>
-                          <path d="M14 11v6"/>
-                          <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
-                          <path d="M9 7V5a 2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                        </g>
-                      </svg>
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
+            <li class="tool-list-item">
+              <span class="tool-dot" style="background: {{ item.color or '#9ca3af' }};"></span>
+              <a href="{{ item.url }}" target="_blank" rel="noopener" class="tool-name text-decoration-none">{{ item.name }}</a>
+              {% if item.keywords %}
+                <span class="tool-tags small">
+                  {% for k in item.keywords %}
+                    <span class="badge text-bg-secondary">{{ k }}</span>
+                  {% endfor %}
+                </span>
+              {% endif %}
+              <span class="tool-actions">
+                <a
+                  href="javascript:void(0)"
+                  role="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  hx-get="/tools/item/edit?item_id={{ item.id }}&category_id={{ cat.id }}"
+                  hx-target="#toolEditModal .modal-content"
+                  hx-swap="innerHTML"
+                  hx-on:htmx:afterSwap="new bootstrap.Modal(document.getElementById('toolEditModal')).show()"
+                  data-bs-toggle="modal"
+                  data-bs-target="#toolEditModal"
+                  title="Edit"
+                  aria-label="Edit">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83l3.75 3.75l1.99-1.66Z"/></svg>
+                </a>
+                <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
+                  <input type="hidden" name="item_id" value="{{ item.id }}"/>
+                  <input type="hidden" name="category_id" value="{{ cat.id }}"/>
+                  <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7h16"/>
+                        <path d="M10 11v6"/>
+                        <path d="M14 11v6"/>
+                        <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
+                        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                      </g>
+                    </svg>
+                  </button>
+                </form>
+              </span>
+            </li>
           {% endfor %}
-        </div>
+        </ul>
       </div>
     {% endfor %}
   </section>

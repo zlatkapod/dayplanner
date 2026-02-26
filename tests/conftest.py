@@ -20,13 +20,11 @@ def app():
     import app as app_module
     old_data_dir = app_module.DATA_DIR
     old_tools_path = app_module.TOOLS_PATH
-    old_qna_path = app_module.QNA_PATH
     old_subs_path = app_module.SUBSCRIPTIONS_PATH
     old_topics_path = app_module.TOPICS_PATH
 
     app_module.DATA_DIR = temp_path
     app_module.TOOLS_PATH = temp_path / "tools.json"
-    app_module.QNA_PATH = temp_path / "qna.json"
     app_module.SUBSCRIPTIONS_PATH = temp_path / "subscriptions.json"
     app_module.TOPICS_PATH = temp_path / "topics.json"
     
@@ -38,7 +36,6 @@ def app():
     shutil.rmtree(temp_dir)
     app_module.DATA_DIR = old_data_dir
     app_module.TOOLS_PATH = old_tools_path
-    app_module.QNA_PATH = old_qna_path
     app_module.SUBSCRIPTIONS_PATH = old_subs_path
     app_module.TOPICS_PATH = old_topics_path
 
