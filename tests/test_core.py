@@ -2,8 +2,13 @@ import json
 import datetime
 from datetime import date
 
-def test_index_page(client):
+def test_dashboard_page(client):
     response = client.get("/")
+    assert response.status_code == 200
+    assert b"Dashboard" in response.data
+
+def test_dayplanner_page(client):
+    response = client.get("/dayplanner")
     assert response.status_code == 200
     assert b"Day Planner" in response.data
 
@@ -26,7 +31,7 @@ def test_todo_sorting(client):
     # Add a new todo
     client.post("/todo", data={"date": today, "text": "New Undone Todo"})
     
-    response = client.get("/")
+    response = client.get("/dayplanner")
     # The new undone todo should be before the done todo
     content = response.data.decode()
     assert content.find("New Undone Todo") < content.find("Done Todo")
@@ -48,7 +53,7 @@ def test_move_todo_next_day(client):
     assert b"Move Me" not in response.data
     
     # Check tomorrow's page
-    response_tomorrow = client.get(f"/?date={tomorrow_str}")
+    response_tomorrow = client.get(f"/dayplanner?date={tomorrow_str}")
     assert b"Move Me" in response_tomorrow.data
 
 def test_update_settings(client):

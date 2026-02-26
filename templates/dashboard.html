@@ -1,0 +1,76 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dp-header">
+  <div>
+    <div style="font-size: 1.6rem; font-weight: 700; color: #4a4a4a;">{{ plan.date }}</div>
+    <nav class="dp-nav d-flex align-items-center gap-2 mt-1" aria-label="Day navigation">
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
+      <span class="dp-muted">Today</span>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
+    </nav>
+  </div>
+</div>
+
+{% if plan.topic %}
+<div class="mb-3">
+  <div class="dashboard-topic">{{ plan.topic }}</div>
+</div>
+{% endif %}
+
+<div class="mb-3">
+  <h6 class="text-uppercase text-muted mb-2">What I want to achieve today?</h6>
+  <form hx-post="/note" hx-trigger="input changed delay:600ms" hx-swap="none">
+    <input type="hidden" name="date" value="{{ plan.date }}"/>
+    <textarea name="text"
+              class="form-control form-control-sm dp-note"
+              placeholder="Write your thoughts..."
+              rows="3"
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+              hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+    >{{ plan.note or '' }}</textarea>
+  </form>
+</div>
+
+<div class="dp-cols">
+  <div>
+    <h6 class="text-uppercase text-muted mb-2">To‑Dos</h6>
+    <form class="dp-todos mb-2" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <div class="input-group input-group-sm mb-2">
+        <input name="text" class="form-control" placeholder="Add a todo (press Enter)"/>
+        <input name="minutes" type="number" min="1" step="1" class="form-control" style="max-width: 7rem;" placeholder="mins"/>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+    {% include "partials/dashboard_todos.html" %}
+  </div>
+
+  <div>
+    <h6 class="text-uppercase text-muted mb-2">Upcoming Schedule</h6>
+    {% if upcoming_blocks %}
+      <div class="dp-grid">
+        {% for b in upcoming_blocks %}
+          <div class="dp-time">{{ b.time }}</div>
+          <div class="dp-slot filled {{ 'important' if b.important }}">{{ b.activity }}</div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="dp-muted">No upcoming scheduled blocks.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function resizeNotes(scope=document){
+    const areas = scope.querySelectorAll('textarea.dp-note');
+    areas.forEach(a => { a.style.height = 'auto'; a.style.height = a.scrollHeight + 'px'; });
+  }
+  document.addEventListener('DOMContentLoaded', () => resizeNotes());
+  document.body.addEventListener('htmx:afterSwap', (evt) => {
+    resizeNotes(evt.target || document);
+  });
+</script>
+
+{% endblock %}

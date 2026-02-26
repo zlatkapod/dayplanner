@@ -95,6 +95,10 @@
     /* Toolbar */
     .dp-toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
 
+    /* Dashboard topic */
+    .dashboard-topic { font-size: 1.8rem; font-weight: 700; color: #2c2c2c; }
+    .theme-dark .dashboard-topic { color: #e6e9ee; }
+
     /* Focus */
     .dp-slot:focus-within { outline: 2px solid var(--dp-focus); outline-offset: 1px; }
 
@@ -113,7 +117,8 @@
 <body class="{{ 'theme-dark' if is_dark else 'theme-light' }}">
   <header class="border-bottom" style="background: transparent;">
     <nav class="dp-container d-flex align-items-center justify-content-start gap-3" aria-label="Main navigation" style="padding-top:8px; padding-bottom:8px;">
-      <a href="{{ url_for('index') }}" class="text-decoration-none fw-semibold">Dayplanner</a>
+      <a href="{{ url_for('dashboard') }}" class="text-decoration-none fw-semibold">Dashboard</a>
+      <a href="{{ url_for('index') }}" class="text-decoration-none">Dayplanner</a>
       <a href="{{ url_for('qna_page') }}" class="text-decoration-none">Q&amp;A</a>
       <a href="{{ url_for('tools_page') }}" class="text-decoration-none">Tools</a>
       <a href="{{ url_for('subscriptions_page') }}" class="text-decoration-none">Subscriptions</a>

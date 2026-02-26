@@ -370,18 +370,41 @@ def get_sun_times(day: date_cls) -> tuple[str | None, str | None]:
         return (None, None)
 
 @app.route("/", methods=["GET"])
+def dashboard():
+    qdate = request.args.get("date")
+    try:
+        if qdate:
+            day = datetime.strptime(qdate, "%Y-%m-%d").date()
+        else:
+            day = datetime.now(get_configured_tz()).date()
+    except ValueError:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    plan = load_plan(day)
+    prev_day = day - timedelta(days=1)
+    next_day = day + timedelta(days=1)
+    sunrise, sunset = get_sun_times(day)
+    is_dark = is_dark_mode(day, sunrise, sunset)
+    # Filter upcoming blocks: scheduled (non-empty activity) and not yet past
+    now = datetime.now(get_configured_tz())
+    upcoming_blocks = []
+    if date_str(day) == date_str(now.date()):
+        now_time = now.strftime("%H:%M")
+        upcoming_blocks = [b for b in plan.get("blocks", []) if b.get("activity") and b["time"] >= now_time]
+    else:
+        upcoming_blocks = [b for b in plan.get("blocks", []) if b.get("activity")]
+    return render_template("dashboard.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark, upcoming_blocks=upcoming_blocks)
+
+@app.route("/dayplanner", methods=["GET"])
 def index():
     qdate = request.args.get("date")
     try:
         if qdate:
             day = datetime.strptime(qdate, "%Y-%m-%d").date()
         else:
-            # Use configured timezone for "today"
             day = datetime.now(get_configured_tz()).date()
     except ValueError:
         abort(400, "Bad date format, expected YYYY-MM-DD")
     plan = load_plan(day)
-    # Navigation dates
     prev_day = day - timedelta(days=1)
     next_day = day + timedelta(days=1)
     sunrise, sunset = get_sun_times(day)
