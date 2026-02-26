@@ -72,6 +72,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         "todos": [],
         "blocks": slots,
         "note": "",
+        "reflection": "",
     }
     # if existing provided, try to keep activities where times still exist
     if existing:
@@ -79,6 +80,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         existing_imp = {b["time"]: bool(b.get("important", False)) for b in existing.get("blocks", [])}
         plan["todos"] = existing.get("todos", [])
         plan["note"] = existing.get("note", existing.get("notes", ""))
+        plan["reflection"] = existing.get("reflection", "")
         plan["topic"] = existing.get("topic", "")
         for b in plan["blocks"]:
             t = b["time"]
@@ -538,6 +540,22 @@ def save_note():
     text = (request.form.get("text") or "")
     plan = load_plan(day)
     plan["note"] = text
+    save_plan(day, plan)
+    return ("", 204)
+
+@app.route("/reflection", methods=["POST"])
+def save_reflection():
+    """Autosave the 'What I liked about today?' reflection field.
+    Expects form fields: date (YYYY-MM-DD), text (string).
+    Returns 204 No Content for HTMX with hx-swap="none".
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    text = (request.form.get("text") or "")
+    plan = load_plan(day)
+    plan["reflection"] = text
     save_plan(day, plan)
     return ("", 204)
 
