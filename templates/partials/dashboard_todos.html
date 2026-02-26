@@ -13,6 +13,7 @@
             <div class="ms-auto d-flex align-items-center gap-2">
               <form hx-post="/todo/done" hx-target="#todos" hx-swap="outerHTML" class="m-0">
                 <input type="hidden" name="date" value="{{ plan.date }}"/>
+                <input type="hidden" name="source" value="dashboard"/>
                 <input type="hidden" name="index" value="{{ loop.index0 }}"/>
                 <button class="btn btn-success btn-sm" type="submit" title="Mark done" aria-label="Mark done">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
@@ -22,6 +23,7 @@
               </form>
               <form hx-post="/todo/delete" hx-target="#todos" hx-swap="outerHTML" class="m-0">
                 <input type="hidden" name="date" value="{{ plan.date }}"/>
+                <input type="hidden" name="source" value="dashboard"/>
                 <input type="hidden" name="index" value="{{ loop.index0 }}"/>
                 <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">

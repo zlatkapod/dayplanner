@@ -38,6 +38,7 @@
     <h6 class="text-uppercase text-muted mb-2">To‑Dos</h6>
     <form class="dp-todos mb-2" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <input type="hidden" name="source" value="dashboard"/>
       <div class="input-group input-group-sm mb-2">
         <input name="text" class="form-control" placeholder="Add a todo (press Enter)"/>
         <input name="minutes" type="number" min="1" step="1" class="form-control" style="max-width: 7rem;" placeholder="mins"/>

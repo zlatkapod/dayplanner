@@ -450,7 +450,8 @@ def add_todo():
         todos.insert(insert_idx, txt)
         plan["todos"] = todos
         save_plan(day, plan)
-    return render_template("partials/todos.html", plan=plan)
+    template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
+    return render_template(template, plan=plan)
 
 @app.route("/todo/delete", methods=["POST"])
 def delete_todo():
@@ -460,7 +461,8 @@ def delete_todo():
     if 0 <= idx < len(plan["todos"]):
         plan["todos"].pop(idx)
         save_plan(day, plan)
-    return render_template("partials/todos.html", plan=plan)
+    template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
+    return render_template(template, plan=plan)
 
 @app.route("/todo/move_next", methods=["POST"])
 def move_todo_next_day():
@@ -522,7 +524,8 @@ def mark_todo_done():
         todos.append(item)
         plan["todos"] = todos
         save_plan(day, plan)
-    return render_template("partials/todos.html", plan=plan)
+    template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
+    return render_template(template, plan=plan)
 
 @app.route("/todo/reorder_all", methods=["POST"])
 def reorder_all_todos():
