@@ -37,4 +37,18 @@
       >{{ plan.reflection or '' }}</textarea>
     </form>
   </div>
+
+  <div class="mt-3">
+    <h6 class="text-uppercase text-muted mb-2">What did I dislike today?</h6>
+    <form hx-post="/dislike" hx-trigger="input changed delay:600ms" hx-swap="none">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <textarea name="text"
+                class="form-control form-control-sm dp-note"
+                placeholder="Write what you disliked..."
+                rows="3"
+                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+      >{{ plan.dislike or '' }}</textarea>
+    </form>
+  </div>
 </div>

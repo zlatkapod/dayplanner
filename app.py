@@ -72,6 +72,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         "blocks": slots,
         "note": "",
         "reflection": "",
+        "dislike": "",
     }
     # if existing provided, try to keep activities where times still exist
     if existing:
@@ -80,6 +81,7 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         plan["todos"] = existing.get("todos", [])
         plan["note"] = existing.get("note", existing.get("notes", ""))
         plan["reflection"] = existing.get("reflection", "")
+        plan["dislike"] = existing.get("dislike", "")
         plan["topic"] = existing.get("topic", "")
         for b in plan["blocks"]:
             t = b["time"]
@@ -552,6 +554,22 @@ def save_reflection():
     text = (request.form.get("text") or "")
     plan = load_plan(day)
     plan["reflection"] = text
+    save_plan(day, plan)
+    return ("", 204)
+
+@app.route("/dislike", methods=["POST"])
+def save_dislike():
+    """Autosave the 'What did I dislike today?' field.
+    Expects form fields: date (YYYY-MM-DD), text (string).
+    Returns 204 No Content for HTMX with hx-swap="none".
+    """
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    text = (request.form.get("text") or "")
+    plan = load_plan(day)
+    plan["dislike"] = text
     save_plan(day, plan)
     return ("", 204)
 
