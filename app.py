@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-import os, json
+import os, json, requests
 from datetime import datetime, timedelta, timezone, date as date_cls, time as time_cls
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, abort
@@ -341,6 +341,55 @@ def get_sun_times(day: date_cls) -> tuple[str | None, str | None]:
         logger.exception("Failed to compute sun times: %s", e)
         return (None, None)
 
+def get_weather(day: date_cls):
+    """Fetch weather for 8AM, 2PM, 8PM on the given date in Deventer, NL (52.25, 6.16)."""
+    # Use Open-Meteo API
+    lat = 52.255
+    lon = 6.160
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date={day.isoformat()}&end_date={day.isoformat()}"
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        hourly = data.get("hourly", {})
+        times = hourly.get("time", [])
+        temps = hourly.get("temperature_2m", [])
+        probs = hourly.get("precipitation_probability", [])
+        codes = hourly.get("weather_code", [])
+
+        # Map weather codes to supercute emojis/icons
+        # 0: Clear, 1-3: Part Cloudy, 45-48: Fog, 51-57: Drizzle, 61-67: Rain, 71-77: Snow, 80-82: Showers, 95-99: Storm
+        icons_map = {
+            0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
+            45: "🌫️", 48: "🌫️",
+            51: "🌦️", 53: "🌦️", 55: "🌦️",
+            56: "🌦️", 57: "🌦️",
+            61: "🌧️", 63: "🌧️", 65: "🌧️",
+            66: "🌧️", 67: "🌧️",
+            71: "❄️", 73: "❄️", 75: "❄️", 77: "❄️",
+            80: "🌦️", 81: "🌧️", 82: "🌧️",
+            95: "⛈️", 96: "⛈️", 99: "⛈️",
+        }
+
+        def get_data_for_hour(h):
+            target = f"{day.isoformat()}T{h:02d}:00"
+            if target in times:
+                idx = times.index(target)
+                code = codes[idx]
+                icon = icons_map.get(code, "❓")
+                return {
+                    "time": f"{h}:00",
+                    "temp": f"{temps[idx]}°C",
+                    "prob": f"{probs[idx]}%",
+                    "icon": icon
+                }
+            return None
+
+        return [get_data_for_hour(8), get_data_for_hour(14), get_data_for_hour(20)]
+    except Exception as e:
+        logger.error("Failed to fetch weather: %s", e)
+        return None
+
 @app.route("/", methods=["GET"])
 def dashboard():
     qdate = request.args.get("date")
@@ -364,7 +413,8 @@ def dashboard():
         upcoming_blocks = [b for b in plan.get("blocks", []) if b.get("activity") and b["time"] >= now_time]
     else:
         upcoming_blocks = [b for b in plan.get("blocks", []) if b.get("activity")]
-    return render_template("dashboard.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark, upcoming_blocks=upcoming_blocks)
+    weather = get_weather(day)
+    return render_template("dashboard.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark, upcoming_blocks=upcoming_blocks, weather=weather)
 
 @app.route("/dayplanner", methods=["GET"])
 def index():
