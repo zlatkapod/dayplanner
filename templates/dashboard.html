@@ -65,6 +65,35 @@
   </div>
 
   <div>
+    <h6 class="text-uppercase text-muted mb-2">Reflections</h6>
+    <div class="mb-3">
+      <h7 class="text-uppercase text-muted mb-2" style="font-size: 0.75rem;">What I liked about today?</h7>
+      <form hx-post="/reflection" hx-trigger="input changed delay:600ms" hx-swap="none">
+        <input type="hidden" name="date" value="{{ plan.date }}"/>
+        <textarea name="text"
+                  class="form-control form-control-sm dp-note"
+                  placeholder="Write your reflection..."
+                  rows="2"
+                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                  hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        >{{ plan.reflection or '' }}</textarea>
+      </form>
+    </div>
+
+    <div class="mb-3">
+      <h7 class="text-uppercase text-muted mb-2" style="font-size: 0.75rem;">What did I dislike today?</h7>
+      <form hx-post="/dislike" hx-trigger="input changed delay:600ms" hx-swap="none">
+        <input type="hidden" name="date" value="{{ plan.date }}"/>
+        <textarea name="text"
+                  class="form-control form-control-sm dp-note"
+                  placeholder="Write what you disliked..."
+                  rows="2"
+                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                  hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        >{{ plan.dislike or '' }}</textarea>
+      </form>
+    </div>
+
     <h6 class="text-uppercase text-muted mb-2">Upcoming Schedule</h6>
     {% if upcoming_blocks %}
       <div class="dp-grid">
@@ -84,9 +113,38 @@
     const areas = scope.querySelectorAll('textarea.dp-note');
     areas.forEach(a => { a.style.height = 'auto'; a.style.height = a.scrollHeight + 'px'; });
   }
-  document.addEventListener('DOMContentLoaded', () => resizeNotes());
   document.body.addEventListener('htmx:afterSwap', (evt) => {
     resizeNotes(evt.target || document);
+    if (evt.target && evt.target.id === 'todos') {
+      initTodoSortable(document);
+    }
+  });
+
+  // Initialize SortableJS for the todos list and persist order via HTMX
+  function initTodoSortable(scope=document){
+    const todosRoot = scope.querySelector('#todos');
+    if (!todosRoot) return;
+    const ul = todosRoot.querySelector('#todo-list');
+    if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
+    ul.dataset.sortableInit = '1';
+    const date = ul.getAttribute('data-date');
+    new Sortable(ul, {
+      animation: 150,
+      ghostClass: 'bg-warning-subtle',
+      dragClass: 'opacity-75',
+      onEnd: function(){
+        const order = Array.from(ul.querySelectorAll('li.todo-item'))
+          .map(li => li.getAttribute('data-text'));
+        htmx.ajax('POST', '/todo/reorder_all', {
+          values: { date: date, order: JSON.stringify(order), source: 'dashboard' },
+          target: '#todos', swap: 'outerHTML'
+        });
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    resizeNotes();
+    initTodoSortable();
   });
 </script>
 

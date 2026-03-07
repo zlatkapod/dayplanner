@@ -522,7 +522,8 @@ def move_todo_next_day():
         todos_tomorrow.insert(insert_idx, todo_text)
         save_plan(next_day, plan_tomorrow)
     # Always return updated today's todos
-    return render_template("partials/todos.html", plan=plan_today)
+    template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
+    return render_template(template, plan=plan_today)
 
 @app.route("/todo/done", methods=["POST"])
 def mark_todo_done():
@@ -573,7 +574,8 @@ def reorder_all_todos():
     plan = load_plan(day)
     plan["todos"] = new_order
     save_plan(day, plan)
-    return render_template("partials/todos.html", plan=plan)
+    template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
+    return render_template(template, plan=plan)
 
 @app.route("/note", methods=["POST"])
 def save_note():

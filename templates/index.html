@@ -31,11 +31,7 @@
       {% include "partials/topic_input.html" %}
     </div>
 
-    <h6 class="text-uppercase text-muted mb-2">Today's To‑Dos</h6>
-    <div id="todos" class="dp-todos">
-      {% include "partials/todos.html" %}
-    </div>
-    <p class="dp-muted mt-2">Tips: click a todo to prefill a block; Press Enter to set, Ctrl+Enter to clear; use Arrow Up/Down to move.</p>
+    <p class="dp-muted mt-2">Tips: click a block to edit; Press Enter to set, Ctrl+Enter to clear; use Arrow Up/Down to move.</p>
   </aside>
 </div>
 
@@ -118,35 +114,6 @@
   document.addEventListener('DOMContentLoaded', () => resizeNotes());
   document.body.addEventListener('htmx:afterSwap', (evt) => {
     resizeNotes(evt.target || document);
-  });
-  // Initialize SortableJS for the todos list and persist order via HTMX
-  function initTodoSortable(scope=document){
-    const todosRoot = scope.querySelector('#todos');
-    if (!todosRoot) return;
-    const ul = todosRoot.querySelector('#todo-list');
-    if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
-    ul.dataset.sortableInit = '1';
-    const date = ul.getAttribute('data-date');
-    new Sortable(ul, {
-      animation: 150,
-      ghostClass: 'bg-warning-subtle',
-      dragClass: 'opacity-75',
-      onEnd: function(){
-        const order = Array.from(ul.querySelectorAll('li.todo-item'))
-          .map(li => li.getAttribute('data-text'));
-        htmx.ajax('POST', '/todo/reorder_all', {
-          values: { date: date, order: JSON.stringify(order) },
-          target: '#todos', swap: 'outerHTML'
-        });
-      }
-    });
-  }
-  document.addEventListener('DOMContentLoaded', () => initTodoSortable());
-  document.body.addEventListener('htmx:afterSwap', (evt) => {
-    const target = evt.target;
-    if (target && target.id === 'todos') {
-      initTodoSortable(document);
-    }
   });
 </script>
 

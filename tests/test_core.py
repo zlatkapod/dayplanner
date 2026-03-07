@@ -25,13 +25,13 @@ def test_add_todo(client):
 def test_todo_sorting(client):
     today = date.today().strftime("%Y-%m-%d")
     # Add a done todo
-    client.post("/todo", data={"date": today, "text": "Done Todo"})
-    client.post("/todo/done", data={"date": today, "index": "0"})
+    client.post("/todo", data={"date": today, "text": "Done Todo", "source": "dashboard"})
+    client.post("/todo/done", data={"date": today, "index": "0", "source": "dashboard"})
     
     # Add a new todo
-    client.post("/todo", data={"date": today, "text": "New Undone Todo"})
+    client.post("/todo", data={"date": today, "text": "New Undone Todo", "source": "dashboard"})
     
-    response = client.get("/dayplanner")
+    response = client.get("/")
     # The new undone todo should be before the done todo
     content = response.data.decode()
     assert content.find("New Undone Todo") < content.find("Done Todo")
@@ -47,13 +47,13 @@ def test_move_todo_next_day(client):
     today_str = today.strftime("%Y-%m-%d")
     tomorrow_str = (today + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     
-    client.post("/todo", data={"date": today_str, "text": "Move Me"})
-    response = client.post("/todo/move_next", data={"date": today_str, "index": "0"})
+    client.post("/todo", data={"date": today_str, "text": "Move Me", "source": "dashboard"})
+    response = client.post("/todo/move_next", data={"date": today_str, "index": "0", "source": "dashboard"})
     
     assert b"Move Me" not in response.data
     
-    # Check tomorrow's page
-    response_tomorrow = client.get(f"/dayplanner?date={tomorrow_str}")
+    # Check tomorrow's page (now in dashboard)
+    response_tomorrow = client.get(f"/?date={tomorrow_str}")
     assert b"Move Me" in response_tomorrow.data
 
 def test_update_settings(client):
