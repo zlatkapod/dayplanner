@@ -1,0 +1,15 @@
+
+<div id="note-item-{{ index }}" class="note-item mb-3">
+  <form hx-post="/note_item/update" hx-target="#notes-list" hx-swap="outerHTML">
+    <input type="hidden" name="date" value="{{ date }}"/>
+    <input type="hidden" name="index" value="{{ index }}"/>
+    <textarea name="text" class="form-control mb-2" rows="4" style="font-size: 0.95rem; line-height: 1.6;">{{ note }}</textarea>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+        hx-get="/note_item/view?date={{ date }}&index={{ index }}"
+        hx-target="#note-item-{{ index }}"
+        hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</div>

@@ -62,49 +62,28 @@
       </div>
     </form>
     {% include "partials/dashboard_todos.html" %}
+
+    <h6 class="text-uppercase text-muted mb-2 mt-4">Love To‑Dos</h6>
+    <form class="dp-todos mb-2" hx-post="/love_todo" hx-target="#love-todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <div class="input-group input-group-sm mb-2">
+        <input name="text" class="form-control" placeholder="Add a love todo..."/>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+    {% include "partials/dashboard_love_todos.html" %}
   </div>
 
   <div>
-    <h6 class="text-uppercase text-muted mb-2">Reflections</h6>
-    <div class="mb-3">
-      <h7 class="text-uppercase text-muted mb-2" style="font-size: 0.75rem;">What I liked about today?</h7>
-      <form hx-post="/reflection" hx-trigger="input changed delay:600ms" hx-swap="none">
-        <input type="hidden" name="date" value="{{ plan.date }}"/>
-        <textarea name="text"
-                  class="form-control form-control-sm dp-note"
-                  placeholder="Write your reflection..."
-                  rows="2"
-                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                  hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        >{{ plan.reflection or '' }}</textarea>
-      </form>
-    </div>
-
-    <div class="mb-3">
-      <h7 class="text-uppercase text-muted mb-2" style="font-size: 0.75rem;">What did I dislike today?</h7>
-      <form hx-post="/dislike" hx-trigger="input changed delay:600ms" hx-swap="none">
-        <input type="hidden" name="date" value="{{ plan.date }}"/>
-        <textarea name="text"
-                  class="form-control form-control-sm dp-note"
-                  placeholder="Write what you disliked..."
-                  rows="2"
-                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                  hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        >{{ plan.dislike or '' }}</textarea>
-      </form>
-    </div>
-
-    <h6 class="text-uppercase text-muted mb-2">Upcoming Schedule</h6>
-    {% if upcoming_blocks %}
-      <div class="dp-grid">
-        {% for b in upcoming_blocks %}
-          <div class="dp-time">{{ b.time }}</div>
-          <div class="dp-slot filled {{ 'important' if b.important }}">{{ b.activity }}</div>
-        {% endfor %}
+    <h6 class="text-uppercase text-muted mb-2">Notes</h6>
+    <form class="mb-3" hx-post="/note_item" hx-target="#notes-list" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <div class="mb-2">
+        <textarea name="text" class="form-control" placeholder="Add a note..." rows="3" style="font-size: 0.95rem; resize: vertical;"></textarea>
       </div>
-    {% else %}
-      <p class="dp-muted">No upcoming scheduled blocks.</p>
-    {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">Add Note</button>
+    </form>
+    {% include "partials/dashboard_notes.html" %}
   </div>
 </div>
 
@@ -115,12 +94,12 @@
   }
   document.body.addEventListener('htmx:afterSwap', (evt) => {
     resizeNotes(evt.target || document);
-    if (evt.target && evt.target.id === 'todos') {
-      initTodoSortable(document);
+    if (evt.target) {
+      if (evt.target.id === 'todos') initTodoSortable(document);
+      if (evt.target.id === 'love-todos') initLoveTodoSortable(document);
     }
   });
 
-  // Initialize SortableJS for the todos list and persist order via HTMX
   function initTodoSortable(scope=document){
     const todosRoot = scope.querySelector('#todos');
     if (!todosRoot) return;
@@ -142,9 +121,33 @@
       }
     });
   }
+
+  function initLoveTodoSortable(scope=document){
+    const root = scope.querySelector('#love-todos');
+    if (!root) return;
+    const ul = root.querySelector('#love-todo-list');
+    if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
+    ul.dataset.sortableInit = '1';
+    const date = ul.getAttribute('data-date');
+    new Sortable(ul, {
+      animation: 150,
+      ghostClass: 'bg-warning-subtle',
+      dragClass: 'opacity-75',
+      onEnd: function(){
+        const order = Array.from(ul.querySelectorAll('li.todo-item'))
+          .map(li => li.getAttribute('data-text'));
+        htmx.ajax('POST', '/love_todo/reorder_all', {
+          values: { date: date, order: JSON.stringify(order) },
+          target: '#love-todos', swap: 'outerHTML'
+        });
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     resizeNotes();
     initTodoSortable();
+    initLoveTodoSortable();
   });
 </script>
 

@@ -69,6 +69,8 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         "start": time_to_str(start),
         "end": time_to_str(end),
         "todos": [],
+        "love_todos": [],
+        "notes": [],
         "blocks": slots,
         "note": "",
         "reflection": "",
@@ -79,7 +81,14 @@ def build_plan(day: date_cls, start: time_cls, end: time_cls, existing: dict | N
         existing_acts = {b["time"]: b.get("activity", "") for b in existing.get("blocks", [])}
         existing_imp = {b["time"]: bool(b.get("important", False)) for b in existing.get("blocks", [])}
         plan["todos"] = existing.get("todos", [])
-        plan["note"] = existing.get("note", existing.get("notes", ""))
+        plan["love_todos"] = existing.get("love_todos", [])
+        _existing_notes = existing.get("notes")
+        plan["notes"] = _existing_notes if isinstance(_existing_notes, list) else []
+        _existing_note = existing.get("note")
+        if _existing_note is None:
+            _fallback = existing.get("notes")
+            _existing_note = _fallback if isinstance(_fallback, str) else ""
+        plan["note"] = _existing_note or ""
         plan["reflection"] = existing.get("reflection", "")
         plan["dislike"] = existing.get("dislike", "")
         plan["topic"] = existing.get("topic", "")
@@ -624,6 +633,164 @@ def save_dislike():
     plan["dislike"] = text
     save_plan(day, plan)
     return ("", 204)
+
+@app.route("/love_todo", methods=["POST"])
+def add_love_todo():
+    day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    plan = load_plan(day)
+    txt = (request.form.get("text") or "").strip()
+    if txt:
+        love_todos = plan.get("love_todos", [])
+        love_todos.append(txt)
+        plan["love_todos"] = love_todos
+        save_plan(day, plan)
+    return render_template("partials/dashboard_love_todos.html", plan=plan)
+
+@app.route("/love_todo/delete", methods=["POST"])
+def delete_love_todo():
+    day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    plan = load_plan(day)
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    love_todos = plan.get("love_todos", [])
+    if 0 <= idx < len(love_todos):
+        love_todos.pop(idx)
+        plan["love_todos"] = love_todos
+        save_plan(day, plan)
+    return render_template("partials/dashboard_love_todos.html", plan=plan)
+
+@app.route("/love_todo/move_next", methods=["POST"])
+def move_love_todo_next_day():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    plan_today = load_plan(day)
+    love_todos_today = plan_today.get("love_todos", [])
+    if 0 <= idx < len(love_todos_today):
+        todo_text = love_todos_today.pop(idx)
+        plan_today["love_todos"] = love_todos_today
+        save_plan(day, plan_today)
+        next_day = day + timedelta(days=1)
+        plan_tomorrow = load_plan(next_day)
+        love_todos_tomorrow = plan_tomorrow.get("love_todos", [])
+        love_todos_tomorrow.append(todo_text)
+        plan_tomorrow["love_todos"] = love_todos_tomorrow
+        save_plan(next_day, plan_tomorrow)
+    return render_template("partials/dashboard_love_todos.html", plan=plan_today)
+
+@app.route("/love_todo/reorder_all", methods=["POST"])
+def reorder_all_love_todos():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    order_raw = request.form.get("order") or "[]"
+    try:
+        new_order = json.loads(order_raw)
+        if not isinstance(new_order, list):
+            raise ValueError("order is not a list")
+        new_order = [str(x) for x in new_order]
+    except Exception:
+        abort(400, "Bad order payload")
+    plan = load_plan(day)
+    plan["love_todos"] = new_order
+    save_plan(day, plan)
+    return render_template("partials/dashboard_love_todos.html", plan=plan)
+
+@app.route("/note_item", methods=["POST"])
+def add_note_item():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format, expected YYYY-MM-DD")
+    plan = load_plan(day)
+    txt = (request.form.get("text") or "").strip()
+    if txt:
+        notes = plan.get("notes", [])
+        if not isinstance(notes, list):
+            notes = []
+        notes.append(txt)
+        plan["notes"] = notes
+        save_plan(day, plan)
+    return render_template("partials/dashboard_notes.html", plan=plan)
+
+@app.route("/note_item/edit", methods=["GET"])
+def edit_note_item():
+    date_param = request.args.get("date")
+    try:
+        day = datetime.strptime(date_param, "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format")
+    try:
+        idx = int(request.args.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    plan = load_plan(day)
+    notes = plan.get("notes", [])
+    if not isinstance(notes, list) or not (0 <= idx < len(notes)):
+        abort(404, "Note not found")
+    return render_template("partials/note_item_edit.html", date=date_param, index=idx, note=notes[idx])
+
+@app.route("/note_item/view", methods=["GET"])
+def view_note_item():
+    date_param = request.args.get("date")
+    try:
+        day = datetime.strptime(date_param, "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format")
+    try:
+        idx = int(request.args.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    plan = load_plan(day)
+    notes = plan.get("notes", [])
+    if not isinstance(notes, list) or not (0 <= idx < len(notes)):
+        abort(404, "Note not found")
+    return render_template("partials/note_item_view.html", date=date_param, index=idx, note=notes[idx])
+
+@app.route("/note_item/update", methods=["POST"])
+def update_note_item():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format")
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    text = (request.form.get("text") or "").strip()
+    plan = load_plan(day)
+    notes = plan.get("notes", [])
+    if isinstance(notes, list) and 0 <= idx < len(notes):
+        notes[idx] = text
+        plan["notes"] = notes
+        save_plan(day, plan)
+    return render_template("partials/dashboard_notes.html", plan=plan)
+
+@app.route("/note_item/delete", methods=["POST"])
+def delete_note_item():
+    try:
+        day = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+    except Exception:
+        abort(400, "Bad date format")
+    try:
+        idx = int(request.form.get("index"))
+    except Exception:
+        abort(400, "Bad index")
+    plan = load_plan(day)
+    notes = plan.get("notes", [])
+    if isinstance(notes, list) and 0 <= idx < len(notes):
+        notes.pop(idx)
+        plan["notes"] = notes
+        save_plan(day, plan)
+    return render_template("partials/dashboard_notes.html", plan=plan)
 
 @app.route("/topic", methods=["POST"])
 def save_topic():
