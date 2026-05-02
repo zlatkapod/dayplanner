@@ -21,6 +21,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOOLS_PATH = DATA_DIR / "tools.json"
 SUBSCRIPTIONS_PATH = DATA_DIR / "subscriptions.json"
 TOPICS_PATH = DATA_DIR / "topics.json"
+LOVE_TODOS_PATH = DATA_DIR / "love_todos.json"
 
 # --- Timezone helper ---
 
@@ -152,6 +153,22 @@ def load_topics() -> dict:
 
 def save_topics(data: dict) -> None:
     with open(TOPICS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def load_love_todos() -> dict:
+    if LOVE_TODOS_PATH.exists():
+        try:
+            with open(LOVE_TODOS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and isinstance(data.get("items"), list):
+                return data
+        except Exception:
+            pass
+    return {"items": []}
+
+def save_love_todos(data: dict) -> None:
+    with open(LOVE_TODOS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -644,6 +661,9 @@ def add_love_todo():
         love_todos.append(txt)
         plan["love_todos"] = love_todos
         save_plan(day, plan)
+        global_data = load_love_todos()
+        global_data["items"].append({"id": _new_id("lt"), "text": txt, "created": date_str(day)})
+        save_love_todos(global_data)
     return render_template("partials/dashboard_love_todos.html", plan=plan)
 
 @app.route("/love_todo/delete", methods=["POST"])
@@ -703,6 +723,30 @@ def reorder_all_love_todos():
     plan["love_todos"] = new_order
     save_plan(day, plan)
     return render_template("partials/dashboard_love_todos.html", plan=plan)
+
+@app.route("/love", methods=["GET"])
+def love_page():
+    data = load_love_todos()
+    items = data.get("items", [])
+    return render_template("love.html", items=items)
+
+@app.route("/love/add", methods=["POST"])
+def add_love_global():
+    txt = (request.form.get("text") or "").strip()
+    data = load_love_todos()
+    if txt:
+        today = datetime.now(get_configured_tz()).date()
+        data["items"].append({"id": _new_id("lt"), "text": txt, "created": date_str(today)})
+        save_love_todos(data)
+    return render_template("partials/love_stickers.html", items=data.get("items", []))
+
+@app.route("/love/delete", methods=["POST"])
+def delete_love_global():
+    item_id = request.form.get("item_id", "")
+    data = load_love_todos()
+    data["items"] = [i for i in data.get("items", []) if i.get("id") != item_id]
+    save_love_todos(data)
+    return render_template("partials/love_stickers.html", items=data.get("items", []))
 
 @app.route("/note_item", methods=["POST"])
 def add_note_item():

@@ -1,0 +1,112 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .love-header {
+    text-align: center;
+    padding: 2rem 0 1.5rem;
+  }
+  .love-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #e91e63 0%, #9c27b0 50%, #e91e63 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.25rem;
+  }
+  .love-subtitle {
+    font-size: 0.9rem;
+    color: var(--dp-muted);
+    letter-spacing: 0.05em;
+  }
+  .love-add-form {
+    max-width: 560px;
+    margin: 0 auto 2.5rem;
+  }
+  .love-stickers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 8px 4px 40px;
+  }
+  @media (max-width: 768px) {
+    .love-stickers-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .love-stickers-grid { grid-template-columns: 1fr; }
+  }
+  .love-sticker {
+    border-radius: 4px;
+    padding: 18px 16px 14px;
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    cursor: default;
+  }
+  .love-sticker:hover {
+    transform: rotate(0deg) scale(1.03) !important;
+    box-shadow: 4px 8px 22px rgba(0,0,0,0.16) !important;
+    z-index: 1;
+  }
+  .love-sticker:hover .sticker-delete {
+    opacity: 1;
+  }
+  .sticker-delete {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: none;
+    background: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #888;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .sticker-delete:hover {
+    color: #c62828;
+  }
+  .sticker-heart {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .sticker-text {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #2d2d2d;
+    flex-grow: 1;
+    word-break: break-word;
+  }
+  .sticker-date {
+    font-size: 0.68rem;
+    color: #999;
+    margin-top: 10px;
+    font-style: italic;
+  }
+</style>
+
+<div class="love-header">
+  <div class="love-title">Love ❤️</div>
+  <div class="love-subtitle">your collection of creative & mood todos</div>
+</div>
+
+<form class="love-add-form input-group input-group-sm"
+      hx-post="/love/add"
+      hx-target="#love-stickers"
+      hx-swap="outerHTML"
+      hx-on::after-swap="this.reset()">
+  <input name="text" class="form-control" placeholder="Add a love todo..." style="font-size: 0.95rem; padding: 8px 12px;"/>
+  <button type="submit" class="btn btn-primary px-4">Add ❤️</button>
+</form>
+
+{% include "partials/love_stickers.html" %}
+
+{% endblock %}

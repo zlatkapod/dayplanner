@@ -1,0 +1,35 @@
+
+{% set palette = [
+  {'bg': '#fff9c4', 'shadow': 'rgba(255,235,59,0.35)'},
+  {'bg': '#fce4ec', 'shadow': 'rgba(244,143,177,0.35)'},
+  {'bg': '#e3f2fd', 'shadow': 'rgba(100,181,246,0.35)'},
+  {'bg': '#e8f5e9', 'shadow': 'rgba(129,199,132,0.35)'},
+  {'bg': '#f3e5f5', 'shadow': 'rgba(186,104,200,0.35)'},
+  {'bg': '#fff3e0', 'shadow': 'rgba(255,183,77,0.35)'},
+  {'bg': '#e0f7fa', 'shadow': 'rgba(77,208,225,0.35)'}
+] %}
+{% set rotations = ['-2deg','1.2deg','-0.8deg','2deg','-1.5deg','0.6deg','1.8deg'] %}
+
+<div id="love-stickers">
+  {% if items %}
+    <div class="love-stickers-grid">
+      {% for item in items %}
+        {% set ci = loop.index0 % palette|length %}
+        <div class="love-sticker"
+             style="background: {{ palette[ci].bg }}; box-shadow: 3px 5px 14px {{ palette[ci].shadow }}, 0 1px 3px rgba(0,0,0,0.08); transform: rotate({{ rotations[ci] }});">
+          <button class="sticker-delete" type="button"
+            hx-post="/love/delete"
+            hx-vals='{"item_id": "{{ item.id }}"}'
+            hx-target="#love-stickers"
+            hx-swap="outerHTML"
+            title="Remove">×</button>
+          <div class="sticker-heart">❤️</div>
+          <div class="sticker-text">{{ item.text }}</div>
+          <div class="sticker-date">{{ item.created }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="dp-muted text-center py-4">No love todos yet. Add your first one above.</p>
+  {% endif %}
+</div>
