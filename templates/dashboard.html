@@ -3,167 +3,283 @@
 {% block content %}
 
 <style>
+  /* ── Day image slots ─────────────────────────────────── */
   .day-image-slot {
-    width: 60px;
-    height: 60px;
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
+    width: 52px; height: 52px;
+    position: relative; border-radius: 6px; overflow: hidden; flex-shrink: 0;
   }
   .day-image-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    border: 2px dashed var(--bs-border-color);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: 6px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s; box-sizing: border-box;
   }
-  .day-image-empty:hover {
-    border-color: var(--bs-primary);
-    background: rgba(13,110,253,0.04);
-  }
-  .day-img-plus {
-    font-size: 1.4rem;
-    color: var(--dp-muted);
-    line-height: 1;
-    user-select: none;
-  }
-  .day-img-thumb {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .day-img-del-form {
-    position: absolute;
-    top: 0;
-    right: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .day-image-slot:hover .day-img-del-form {
-    opacity: 1;
-  }
+  .day-image-empty:hover { border-color: var(--bs-body-color); background: transparent; }
+  .day-img-plus { font-size: 1.1rem; color: var(--dp-muted); line-height: 1; user-select: none; }
+  .day-img-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .day-img-del-form { position: absolute; top: 0; right: 0; opacity: 0; transition: opacity 0.15s; }
+  .day-image-slot:hover .day-img-del-form { opacity: 1; }
   .day-img-del-btn {
-    border: none;
-    background: rgba(0,0,0,0.55);
-    color: #fff;
-    border-radius: 0 10px 0 8px;
-    width: 22px;
-    height: 22px;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: none; background: rgba(0,0,0,0.5); color: #fff;
+    border-radius: 0 6px 0 5px; width: 20px; height: 20px;
+    cursor: pointer; font-size: .9rem; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
   }
-  .day-img-del-btn:hover { background: rgba(200,0,0,0.8); }
+  .day-img-del-btn:hover { background: rgba(180,0,0,0.8); }
+
+  /* ── Header ──────────────────────────────────────────── */
+  .dp-dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  .dp-date-block {}
+  .dp-big-date {
+    font-size: 3.4rem; font-weight: 900;
+    letter-spacing: -2px; line-height: 1;
+    text-transform: uppercase;
+    color: var(--bs-body-color);
+  }
+  .dp-day-nav {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 7px; font-size: 0.78rem;
+  }
+  .dp-day-nav a {
+    color: var(--dp-muted); text-decoration: none;
+    transition: color 0.12s;
+  }
+  .dp-day-nav a:hover { color: var(--bs-body-color); }
+  .dp-day-nav .sep { color: var(--bs-border-color); }
+  .dp-weather-row {
+    display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .dp-w-cell {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.75rem; color: var(--dp-muted);
+  }
+  .dp-w-cell .wi { font-size: 1rem; }
+  .dp-w-cell .wt { font-weight: 700; color: var(--bs-body-color); }
+  .dp-w-cell .wp { color: #5a8fcb; }
+
+  /* ── Section label ───────────────────────────────────── */
+  .dp-label {
+    display: block;
+    font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--dp-muted);
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 10px;
+  }
+
+  /* ── Intention box ───────────────────────────────────── */
+  .dp-intention {
+    padding-left: 14px;
+    border-left: 2px solid var(--bs-body-color);
+    margin-bottom: 28px;
+  }
+  .dp-intention .dp-label { border-bottom: none; padding-bottom: 5px; margin-bottom: 4px; }
+  .dp-intention textarea {
+    width: 100%;
+    background: transparent; color: var(--bs-body-color);
+    border: none; border-bottom: 1px solid var(--bs-border-color);
+    border-radius: 0; outline: none;
+    font-size: 0.9rem; line-height: 1.6;
+    padding: 4px 0; resize: none; overflow: hidden;
+    transition: border-color 0.12s;
+  }
+  .dp-intention textarea:focus { border-bottom-color: var(--bs-body-color); }
+
+  /* ── Add row ─────────────────────────────────────────── */
+  .dp-add {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 12px;
+  }
+  .dp-add input {
+    flex: 1; min-width: 0;
+    padding: 5px 0; font-size: 0.84rem;
+    border: none; border-bottom: 1px solid var(--bs-border-color);
+    border-radius: 0; background: transparent; color: var(--bs-body-color);
+    outline: none; transition: border-color 0.12s;
+  }
+  .dp-add input:focus { border-bottom-color: var(--bs-body-color); }
+  .dp-add input[type="number"] { max-width: 62px; }
+  .dp-add-submit {
+    border: none; background: none;
+    color: var(--dp-muted); cursor: pointer;
+    font-size: 1.2rem; line-height: 1; padding: 2px 4px;
+    transition: color 0.12s;
+  }
+  .dp-add-submit:hover { color: var(--bs-body-color); }
+
+  /* ── Add note ────────────────────────────────────────── */
+  .dp-add-note textarea {
+    width: 100%;
+    padding: 6px 0; font-size: 0.84rem; line-height: 1.55;
+    border: none; border-bottom: 1px solid var(--bs-border-color);
+    border-radius: 0; background: transparent; color: var(--bs-body-color);
+    resize: none; outline: none; margin-bottom: 8px;
+    transition: border-color 0.12s;
+  }
+  .dp-add-note textarea:focus { border-bottom-color: var(--bs-body-color); }
+  .dp-add-note button {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; border: 1px solid var(--bs-border-color);
+    border-radius: 3px; background: transparent; color: var(--dp-muted);
+    padding: 4px 12px; cursor: pointer; transition: all 0.12s;
+  }
+  .dp-add-note button:hover {
+    background: var(--bs-body-color); color: var(--bs-body-bg);
+    border-color: var(--bs-body-color);
+  }
+
+  /* ── Item rows ───────────────────────────────────────── */
+  .dp-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  .dp-row:last-child { border-bottom: none; }
+  .dp-row-text {
+    flex: 1; min-width: 0;
+    font-size: 0.875rem; line-height: 1.45;
+    word-break: break-word;
+  }
+  .dp-row-text.done {
+    text-decoration: line-through; opacity: 0.38;
+  }
+  .dp-row-icon { font-size: 0.85rem; flex-shrink: 0; opacity: 0.6; }
+  .dp-row-actions {
+    display: flex; gap: 1px; opacity: 0;
+    transition: opacity 0.1s; flex-shrink: 0;
+  }
+  .dp-row:hover .dp-row-actions { opacity: 1; }
+  .dp-ghost {
+    border: none; background: none;
+    color: var(--dp-muted); cursor: pointer;
+    padding: 3px 5px; border-radius: 3px; line-height: 1;
+    transition: color 0.1s, background 0.1s;
+  }
+  .dp-ghost:hover { color: var(--bs-body-color); background: var(--bs-border-color); }
+  .dp-ghost.del:hover { color: #c62828; background: transparent; }
+
+  /* ── Note cards ──────────────────────────────────────── */
+  .dp-note-card {
+    position: relative;
+    padding: 10px 12px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    background: var(--dp-card-bg);
+    margin-bottom: 8px;
+  }
+  .dp-note-card-text {
+    font-size: 0.875rem; line-height: 1.6;
+    white-space: pre-wrap; padding-right: 48px;
+  }
+  .dp-note-card .dp-row-actions {
+    position: absolute; top: 8px; right: 8px; opacity: 0;
+  }
+  .dp-note-card:hover .dp-row-actions { opacity: 1; }
+
+  /* ── Topic ───────────────────────────────────────────── */
+  .dashboard-topic { font-size: 1.6rem; font-weight: 800; color: var(--bs-body-color); margin-bottom: 20px; }
+
+  /* ── Theme fix ───────────────────────────────────────── */
   .theme-dark .text-muted { color: var(--dp-muted) !important; }
 </style>
 
-<div class="dp-header">
-  <div class="d-flex justify-content-between align-items-center w-100">
-    <div>
-      <div style="font-size: 3.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; color: var(--bs-body-color); text-transform: uppercase;">{{ day.strftime('%-d %b') }}</div>
-      <nav class="dp-nav d-flex align-items-center gap-2 mt-1" aria-label="Day navigation">
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
-        <span class="dp-muted">Today</span>
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
-      </nav>
-    </div>
-
-    <div class="d-flex gap-2 align-items-center">
-      {% with slot=1 %}{% include "partials/day_image_slot.html" %}{% endwith %}
-      {% with slot=2 %}{% include "partials/day_image_slot.html" %}{% endwith %}
-      {% with slot=3 %}{% include "partials/day_image_slot.html" %}{% endwith %}
-    </div>
-
+<!-- ─────────── HEADER ─────────────────────────────────── -->
+<div class="dp-dash-header">
+  <div class="dp-date-block">
+    <div class="dp-big-date">{{ day.strftime('%-d %b') }}</div>
+    <nav class="dp-day-nav" aria-label="Day navigation">
+      <a href="{{ url_for('dashboard', date=prev_day.strftime('%Y-%m-%d')) }}">← {{ prev_day.strftime('%a %-d %b') }}</a>
+      <span class="sep">·</span>
+      <a href="{{ url_for('dashboard', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %-d %b') }} →</a>
+    </nav>
     {% if weather %}
-    <div class="d-flex gap-3 text-center">
-      {% for w in weather %}
-        {% if w %}
-        <div style="background: var(--dp-card-bg); padding: 5px 10px; border-radius: 10px; border: 1px solid var(--bs-border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-          <div style="font-size: 0.75rem; font-weight: 600; color: var(--dp-muted);">{{ w.time }}</div>
-          <div style="font-size: 1.5rem; margin: 2px 0;">{{ w.icon }}</div>
-          <div style="font-size: 0.85rem; font-weight: 700;">{{ w.temp }}</div>
-          <div style="font-size: 0.7rem; color: #0d6efd;"><i class="bi bi-droplet"></i> {{ w.prob }}</div>
-        </div>
-        {% endif %}
-      {% endfor %}
+    <div class="dp-weather-row">
+      {% for w in weather %}{% if w %}
+      <div class="dp-w-cell">
+        <span class="wi">{{ w.icon }}</span>
+        <span class="wt">{{ w.temp }}</span>
+        <span class="wp"><i class="bi bi-droplet" style="font-size:0.65rem;"></i>{{ w.prob }}</span>
+        <span>{{ w.time }}</span>
+      </div>
+      {% endif %}{% endfor %}
     </div>
     {% endif %}
+  </div>
+
+  <div class="d-flex gap-2 align-items-start pt-1">
+    {% with slot=1 %}{% include "partials/day_image_slot.html" %}{% endwith %}
+    {% with slot=2 %}{% include "partials/day_image_slot.html" %}{% endwith %}
+    {% with slot=3 %}{% include "partials/day_image_slot.html" %}{% endwith %}
   </div>
 </div>
 
 {% if plan.topic %}
-<div class="mb-3">
-  <div class="dashboard-topic">{{ plan.topic }}</div>
-</div>
+<div class="dashboard-topic">{{ plan.topic }}</div>
 {% endif %}
 
-<div class="mb-3">
-  <h6 class="text-uppercase text-muted mb-2">What I want to achieve today?</h6>
+<!-- ─────────── INTENTION ──────────────────────────────── -->
+<div class="dp-intention">
+  <span class="dp-label">Today's intention</span>
   <form hx-post="/note" hx-trigger="input changed delay:600ms" hx-swap="none">
     <input type="hidden" name="date" value="{{ plan.date }}"/>
-    <textarea name="text"
-              class="form-control form-control-sm dp-note"
-              placeholder="Write your thoughts..."
-              rows="3"
+    <textarea name="text" rows="2"
+              placeholder="What do you want to achieve today?"
               oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
               hx-on::load="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
     >{{ plan.note or '' }}</textarea>
   </form>
 </div>
 
+<!-- ─────────── TWO COLUMNS ───────────────────────────── -->
 <div class="dp-cols">
+
+  <!-- Left: To-Dos + Love -->
   <div>
-    <h6 class="text-uppercase text-muted mb-2">To‑Dos</h6>
-    <form class="dp-todos mb-2" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+    <span class="dp-label">To‑Dos</span>
+    <form class="dp-add" hx-post="/todo" hx-target="#todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
       <input type="hidden" name="source" value="dashboard"/>
-      <div class="input-group input-group-sm mb-2">
-        <input name="text" class="form-control" placeholder="Add a todo (press Enter)"/>
-        <input name="minutes" type="number" min="1" step="1" class="form-control" style="max-width: 7rem;" placeholder="mins"/>
-        <button type="submit" class="btn btn-primary">Add</button>
-      </div>
+      <input name="text" type="text" placeholder="Add a to-do…"/>
+      <input name="minutes" type="number" min="1" step="1" placeholder="min"/>
+      <button class="dp-add-submit" type="submit" title="Add">+</button>
     </form>
     {% include "partials/dashboard_todos.html" %}
 
-    <h6 class="text-uppercase text-muted mb-2 mt-4">Love To‑Dos</h6>
-    <form class="dp-todos mb-2" hx-post="/love_todo" hx-target="#love-todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+    <span class="dp-label" style="margin-top: 32px; display: block;">Love</span>
+    <form class="dp-add" hx-post="/love_todo" hx-target="#love-todos" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
-      <div class="input-group input-group-sm mb-2">
-        <input name="text" class="form-control" placeholder="Add a love todo..."/>
-        <button type="submit" class="btn btn-primary">Add</button>
-      </div>
+      <input name="text" type="text" placeholder="Add a love to-do…"/>
+      <button class="dp-add-submit" type="submit" title="Add">+</button>
     </form>
     {% include "partials/dashboard_love_todos.html" %}
   </div>
 
+  <!-- Right: Notes -->
   <div>
-    <h6 class="text-uppercase text-muted mb-2">Notes</h6>
-    <form class="mb-3" hx-post="/note_item" hx-target="#notes-list" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+    <span class="dp-label">Notes</span>
+    <form class="dp-add-note" hx-post="/note_item" hx-target="#notes-list" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
-      <div class="mb-2">
-        <textarea name="text" class="form-control" placeholder="Add a note..." rows="3" style="font-size: 0.95rem; resize: vertical;"></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary btn-sm">Add Note</button>
+      <textarea name="text" rows="2" placeholder="Add a note…"></textarea>
+      <button type="submit">Add note</button>
     </form>
     {% include "partials/dashboard_notes.html" %}
   </div>
+
 </div>
 
 <script>
   function resizeNotes(scope=document){
-    const areas = scope.querySelectorAll('textarea.dp-note');
-    areas.forEach(a => { a.style.height = 'auto'; a.style.height = a.scrollHeight + 'px'; });
+    scope.querySelectorAll('textarea.dp-note, .dp-intention textarea').forEach(a => {
+      a.style.height = 'auto'; a.style.height = a.scrollHeight + 'px';
+    });
   }
   document.body.addEventListener('htmx:afterSwap', (evt) => {
     resizeNotes(evt.target || document);
@@ -174,21 +290,16 @@
   });
 
   function initTodoSortable(scope=document){
-    const todosRoot = scope.querySelector('#todos');
-    if (!todosRoot) return;
-    const ul = todosRoot.querySelector('#todo-list');
+    const ul = scope.querySelector('#todo-list');
     if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
     ul.dataset.sortableInit = '1';
     const date = ul.getAttribute('data-date');
     new Sortable(ul, {
-      animation: 150,
-      ghostClass: 'bg-warning-subtle',
-      dragClass: 'opacity-75',
+      animation: 150, ghostClass: 'opacity-50', dragClass: 'opacity-75',
       onEnd: function(){
-        const order = Array.from(ul.querySelectorAll('li.todo-item'))
-          .map(li => li.getAttribute('data-text'));
+        const order = Array.from(ul.querySelectorAll('li[data-text]')).map(li => li.getAttribute('data-text'));
         htmx.ajax('POST', '/todo/reorder_all', {
-          values: { date: date, order: JSON.stringify(order), source: 'dashboard' },
+          values: { date, order: JSON.stringify(order), source: 'dashboard' },
           target: '#todos', swap: 'outerHTML'
         });
       }
@@ -196,32 +307,23 @@
   }
 
   function initLoveTodoSortable(scope=document){
-    const root = scope.querySelector('#love-todos');
-    if (!root) return;
-    const ul = root.querySelector('#love-todo-list');
+    const ul = scope.querySelector('#love-todo-list');
     if (!ul || ul.dataset.sortableInit === '1' || typeof Sortable === 'undefined') return;
     ul.dataset.sortableInit = '1';
     const date = ul.getAttribute('data-date');
     new Sortable(ul, {
-      animation: 150,
-      ghostClass: 'bg-warning-subtle',
-      dragClass: 'opacity-75',
+      animation: 150, ghostClass: 'opacity-50', dragClass: 'opacity-75',
       onEnd: function(){
-        const order = Array.from(ul.querySelectorAll('li.todo-item'))
-          .map(li => li.getAttribute('data-text'));
+        const order = Array.from(ul.querySelectorAll('li[data-text]')).map(li => li.getAttribute('data-text'));
         htmx.ajax('POST', '/love_todo/reorder_all', {
-          values: { date: date, order: JSON.stringify(order) },
+          values: { date, order: JSON.stringify(order) },
           target: '#love-todos', swap: 'outerHTML'
         });
       }
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    resizeNotes();
-    initTodoSortable();
-    initLoveTodoSortable();
-  });
+  document.addEventListener('DOMContentLoaded', () => { resizeNotes(); initTodoSortable(); initLoveTodoSortable(); });
 </script>
 
 {% endblock %}

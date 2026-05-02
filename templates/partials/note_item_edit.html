@@ -1,12 +1,15 @@
 
-<div id="note-item-{{ index }}" class="note-item mb-3">
+<div id="note-item-{{ index }}" class="dp-note-card">
   <form hx-post="/note_item/update" hx-target="#notes-list" hx-swap="outerHTML">
     <input type="hidden" name="date" value="{{ date }}"/>
     <input type="hidden" name="index" value="{{ index }}"/>
-    <textarea name="text" class="form-control mb-2" rows="4" style="font-size: 0.95rem; line-height: 1.6;">{{ note }}</textarea>
-    <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-primary btn-sm">Save</button>
-      <button type="button" class="btn btn-outline-secondary btn-sm"
+    <textarea name="text" rows="4"
+      style="width:100%; padding:4px 0; font-size:0.875rem; line-height:1.6; border:none; border-bottom:1px solid var(--bs-border-color); background:transparent; color:var(--bs-body-color); resize:vertical; outline:none; margin-bottom:10px;">{{ note }}</textarea>
+    <div style="display:flex; gap:8px;">
+      <button type="submit"
+        style="font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--bs-body-color); border-radius:3px; background:var(--bs-body-color); color:var(--bs-body-bg); padding:4px 12px; cursor:pointer;">Save</button>
+      <button type="button"
+        style="font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--bs-border-color); border-radius:3px; background:transparent; color:var(--dp-muted); padding:4px 12px; cursor:pointer;"
         hx-get="/note_item/view?date={{ date }}&index={{ index }}"
         hx-target="#note-item-{{ index }}"
         hx-swap="outerHTML">Cancel</button>

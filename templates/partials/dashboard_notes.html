@@ -3,34 +3,27 @@
   {% set all_notes = plan.get('notes', []) %}
   {% if all_notes %}
     {% for note in all_notes %}
-      <div id="note-item-{{ loop.index0 }}" class="note-item mb-3">
-        <div class="note-text mb-2" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; background: var(--dp-card-bg); border: 1px solid var(--bs-border-color); border-radius: 8px; padding: 12px 14px; min-height: 60px;">{{ note }}</div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-secondary btn-sm"
+      <div id="note-item-{{ loop.index0 }}" class="dp-note-card">
+        <div class="dp-note-card-text">{{ note }}</div>
+        <div class="dp-row-actions">
+          <button class="dp-ghost" type="button"
             hx-get="/note_item/edit?date={{ plan.date }}&index={{ loop.index0 }}"
             hx-target="#note-item-{{ loop.index0 }}"
-            hx-swap="outerHTML">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Edit
+            hx-swap="outerHTML"
+            title="Edit">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           <form hx-post="/note_item/delete" hx-target="#notes-list" hx-swap="outerHTML" class="m-0">
             <input type="hidden" name="date" value="{{ plan.date }}"/>
             <input type="hidden" name="index" value="{{ loop.index0 }}"/>
-            <button class="btn btn-outline-danger btn-sm" type="submit">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">
-                <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/>
-                  <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
-                  <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                </g>
-              </svg>
-              Delete
+            <button class="dp-ghost del" type="submit" title="Delete">
+              <svg width="12" height="12" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </form>
         </div>
       </div>
     {% endfor %}
   {% else %}
-    <p class="dp-muted">No notes yet. Add one above.</p>
+    <p class="dp-muted" style="padding: 6px 0; font-size: 0.82rem;">Nothing here yet.</p>
   {% endif %}
 </div>
