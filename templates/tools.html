@@ -1,156 +1,536 @@
 {% extends "base.html" %}
 {% block content %}
 
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.25.0/dist/tagify.css">
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.25.0/dist/tagify.min.js"></script>
+
 <style>
-  /* Tools page overrides */
-  #tools-page a { color: #343a40; }
-  .theme-dark #tools-page a { color: #d1d5db; }
-  #tools-page a:hover { text-decoration: underline; }
+  /* ── Layout ───────────────────────────────────── */
+  #tools-page { gap: 28px; }
 
-  .tool-list { list-style: none; margin: 0; padding: 0; }
-  .tool-list-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
-  .tool-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .tool-name { font-weight: 600; line-height: 1.2; }
-  .tool-tags { display: inline-flex; gap: 4px; margin-left: 8px; }
-  .tool-actions { display: flex; gap: 6px; margin-left: auto; }
+  /* ── Sidebar ──────────────────────────────────── */
+  .tools-sidebar { padding: 4px 0; }
+  .tools-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .tools-sidebar-title {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+  .tools-cat-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 1px;
+  }
+  .tools-cat-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 7px;
+    font-size: .84rem;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background .1s;
+  }
+  .tools-cat-link:hover { background: var(--bs-border-color); }
+  .tools-cat-link.active {
+    background: var(--bs-primary);
+    color: #fff;
+  }
+  .tools-cat-link.active .tools-cat-badge {
+    background: rgba(255,255,255,.22);
+    color: #fff;
+  }
+  .tools-cat-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: .68rem;
+    font-weight: 600;
+    background: var(--bs-border-color);
+    border-radius: 10px;
+    color: var(--dp-muted);
+    flex-shrink: 0;
+    margin-left: 6px;
+  }
+  .tools-cat-delete {
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .tools-cat-row:hover .tools-cat-delete { opacity: 1; }
 
-  /* Category list link color override */
-  #tools-categories a { color: #343a40; }
-  .theme-dark #tools-categories a { color: #d1d5db; }
+  /* ── Toolbar ──────────────────────────────────── */
+  .tools-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .tools-toolbar .input-group-text {
+    background: var(--dp-card-bg);
+    border-color: var(--bs-border-color);
+    color: var(--dp-muted);
+  }
+  .tools-toolbar .form-control {
+    background: var(--dp-card-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+  }
+  .tools-toolbar .form-control:focus {
+    background: var(--dp-card-bg);
+    color: var(--bs-body-color);
+    box-shadow: 0 0 0 3px rgba(86,156,255,.15);
+  }
+
+  /* ── Category heading ─────────────────────────── */
+  .tools-cat-heading {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  /* ── Card grid ────────────────────────────────── */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  /* ── Tool card ────────────────────────────────── */
+  .tool-card {
+    background: var(--dp-card-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: box-shadow .15s, transform .12s;
+  }
+  .tool-card:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,.09);
+    transform: translateY(-2px);
+  }
+  .theme-dark .tool-card:hover {
+    box-shadow: 0 4px 18px rgba(0,0,0,.4);
+  }
+  .tool-card-accent {
+    height: 3px;
+    background: var(--accent, #9ca3af);
+  }
+  .tool-card-inner {
+    padding: 12px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 80px;
+  }
+  .tool-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .tool-favicon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    margin-top: 1px;
+  }
+  .tool-card-name {
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .tool-card-name:hover { text-decoration: underline; color: var(--bs-primary); }
+  .tool-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tool-card-tags .badge {
+    font-size: .65rem;
+    font-weight: 500;
+    background: var(--bs-border-color);
+    color: var(--dp-muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    letter-spacing: .01em;
+  }
+  .tool-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .tool-card:hover .tool-card-actions { opacity: 1; }
+  .tool-btn-edit, .tool-btn-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    font-size: .75rem;
+    cursor: pointer;
+    border: 1px solid var(--bs-border-color);
+    background: transparent;
+    color: var(--dp-muted);
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  .tool-btn-edit:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
+  .tool-btn-delete:hover { border-color: #dc3545; color: #dc3545; }
+
+  /* ── Empty state ──────────────────────────────── */
+  .tools-empty {
+    text-align: center;
+    padding: 56px 0;
+    color: var(--dp-muted);
+  }
+  .tools-empty i { font-size: 2.5rem; opacity: .25; display: block; margin-bottom: 12px; }
+
+  /* ── Color picker ─────────────────────────────── */
+  .color-picker-wrap { display: flex; align-items: center; gap: 10px; }
+  input[type="color"].color-native {
+    width: 42px;
+    height: 34px;
+    padding: 2px 3px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 7px;
+    background: var(--dp-card-bg);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── Tagify overrides ─────────────────────────── */
+  .tagify {
+    --tag-bg: #e9ecef;
+    --tag-hover: #dee2e6;
+    border-color: var(--bs-border-color) !important;
+    background: var(--dp-card-bg) !important;
+    border-radius: 6px;
+    font-size: .85rem;
+    min-height: 32px;
+    width: 100%;
+  }
+  .tagify__input::before { color: var(--dp-muted); }
+  .theme-dark .tagify {
+    --tag-bg: #273240;
+    --tag-hover: #314056;
+    --tag-text-color: #c9d1db;
+    --tag-remove-bg: rgba(220,53,69,.45);
+    --tagify-dd-bg-color: #1a2330;
+    --tagify-dd-color-primary: #5aa2ff;
+    --input-color: #e6e9ee;
+  }
+
+  /* ── Modal dark mode ──────────────────────────── */
+  .theme-dark .modal-content {
+    background: var(--dp-card-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+  }
+  .theme-dark .modal-header,
+  .theme-dark .modal-footer {
+    border-color: var(--bs-border-color);
+  }
+  .theme-dark .form-control,
+  .theme-dark .form-select {
+    background-color: #0f141a;
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+  }
+  .theme-dark .form-control::placeholder { color: var(--dp-muted); }
+  .theme-dark .input-group-text {
+    background-color: #0f141a;
+    border-color: var(--bs-border-color);
+    color: var(--dp-muted);
+  }
 </style>
 
-<div id="tools-page" class="dp-cols" style="grid-template-columns: 260px 1fr;">
-  <aside>
-    <div class="d-flex align-items-center justify-content-between">
-      <h6 class="text-uppercase text-muted mb-2">Categories</h6>
-      <details class="ms-2">
-        <summary class="btn btn-outline-primary btn-sm">+ Category</summary>
-        <form class="mt-2" hx-post="/tools/category/add" hx-swap="none">
-          <div class="input-group input-group-sm">
-            <input name="name" class="form-control" placeholder="Category name" required />
-            <button class="btn btn-primary" type="submit">Add</button>
-          </div>
-        </form>
-      </details>
+{% set ns = namespace(total=0) %}
+{% for cat in tools.categories %}{% set ns.total = ns.total + (cat['items'] | length) %}{% endfor %}
+
+<div id="tools-page"
+     x-data="{ search: '', activecat: '' }"
+     class="dp-cols"
+     style="grid-template-columns: 215px 1fr;">
+
+  <!-- ─── Sidebar ──────────────────────────────── -->
+  <aside class="tools-sidebar">
+    <div class="tools-sidebar-header">
+      <span class="tools-sidebar-title">Categories</span>
+      <button class="btn btn-outline-primary btn-sm"
+              data-bs-toggle="modal" data-bs-target="#addCatModal"
+              style="padding:2px 9px; font-size:.75rem; line-height:1.6;">+</button>
     </div>
-    <ul class="list-unstyled m-0 p-0 mt-2" id="tools-categories">
-      {% for cat in tools.categories %}
-        <li class="mb-1 d-flex align-items-center justify-content-between gap-2">
-          <a class="text-decoration-none" href="#cat-{{ cat.id }}">{{ cat.name }}</a>
-          {% if not cat['items'] or (cat['items'] | length) == 0 %}
-          <form hx-post="/tools/category/delete" hx-swap="none" class="m-0">
-            <input type="hidden" name="category_id" value="{{ cat.id }}"/>
-            <button class="btn btn-danger btn-sm" type="submit" title="Delete category" aria-label="Delete category">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 7h16"/>
-                  <path d="M10 11v6"/>
-                  <path d="M14 11v6"/>
-                  <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
-                  <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                </g>
-              </svg>
-            </button>
-          </form>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  </aside>
-  <section>
-    <!-- Add Tool control -->
-    <details class="mb-3">
-      <summary class="btn btn-outline-primary btn-sm">Add Tool +</summary>
-      <form class="mt-2" hx-post="/tools/item/add" hx-swap="none">
-        <div class="row g-2">
-          <div class="col-12 col-md-3">
-            <input name="name" class="form-control form-control-sm" placeholder="Name" required />
-          </div>
-          <div class="col-12 col-md-4">
-            <input name="url" class="form-control form-control-sm" placeholder="https://…" required />
-          </div>
-          <div class="col-12 col-md-3">
-            <select name="category_id" class="form-select form-select-sm" required>
-              <option value="" selected disabled>Category…</option>
-              {% for cat in tools.categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-12 col-md-6">
-            <input name="tags" class="form-control form-control-sm" placeholder="tags (comma separated)" />
-          </div>
-          <div class="col-12 col-md-3">
-            <input name="color" class="form-control form-control-sm" placeholder="#ff9900" pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" title="Hex color like #RGB or #RRGGBB" />
-          </div>
-          <div class="col-12 col-md-3 d-grid">
-            <button class="btn btn-primary btn-sm" type="submit">Add Tool</button>
-          </div>
-        </div>
-      </form>
-    </details>
+
+    <div class="tools-cat-row">
+      <a class="tools-cat-link"
+         @click.prevent="activecat = ''"
+         :class="{ active: activecat === '' }"
+         href="#">
+        All tools
+        <span class="tools-cat-badge">{{ ns.total }}</span>
+      </a>
+    </div>
 
     {% for cat in tools.categories %}
-      <div id="cat-{{ cat.id }}" class="mb-4">
-        <h5 class="mb-3">{{ cat.name }}</h5>
-        <ul class="tool-list">
-          {% for item in cat['items'] %}
-            <li class="tool-list-item">
-              <span class="tool-dot" style="background: {{ item.color or '#9ca3af' }};"></span>
-              <a href="{{ item.url }}" target="_blank" rel="noopener" class="tool-name text-decoration-none">{{ item.name }}</a>
-              {% if item.keywords %}
-                <span class="tool-tags small">
-                  {% for k in item.keywords %}
-                    <span class="badge text-bg-secondary">{{ k }}</span>
-                  {% endfor %}
-                </span>
-              {% endif %}
-              <span class="tool-actions">
-                <a
-                  href="javascript:void(0)"
-                  role="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  hx-get="/tools/item/edit?item_id={{ item.id }}&category_id={{ cat.id }}"
-                  hx-target="#toolEditModal .modal-content"
-                  hx-swap="innerHTML"
-                  hx-on:htmx:afterSwap="new bootstrap.Modal(document.getElementById('toolEditModal')).show()"
-                  data-bs-toggle="modal"
-                  data-bs-target="#toolEditModal"
-                  title="Edit"
-                  aria-label="Edit">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83l3.75 3.75l1.99-1.66Z"/></svg>
-                </a>
-                <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
-                  <input type="hidden" name="item_id" value="{{ item.id }}"/>
-                  <input type="hidden" name="category_id" value="{{ cat.id }}"/>
-                  <button class="btn btn-danger btn-sm" type="submit" title="Delete" aria-label="Delete">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 7h16"/>
-                        <path d="M10 11v6"/>
-                        <path d="M14 11v6"/>
-                        <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>
-                        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                      </g>
-                    </svg>
-                  </button>
-                </form>
-              </span>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
+    <div class="tools-cat-row">
+      <a class="tools-cat-link"
+         @click.prevent="activecat = '{{ cat.id }}'"
+         :class="{ active: activecat === '{{ cat.id }}' }"
+         href="#">
+        {{ cat.name }}
+        <span class="tools-cat-badge">{{ cat['items'] | length }}</span>
+      </a>
+      {% if not cat['items'] %}
+      <form hx-post="/tools/category/delete" hx-swap="none" class="m-0 tools-cat-delete">
+        <input type="hidden" name="category_id" value="{{ cat.id }}"/>
+        <button class="btn btn-link btn-sm p-0 text-danger" type="submit"
+                title="Delete empty category" style="line-height:1; font-size:.7rem;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </form>
+      {% endif %}
+    </div>
     {% endfor %}
+  </aside>
+
+  <!-- ─── Main ─────────────────────────────────── -->
+  <section>
+    <!-- Toolbar -->
+    <div class="tools-toolbar">
+      <div class="input-group input-group-sm" style="max-width:260px;">
+        <span class="input-group-text">
+          <i class="bi bi-search" style="font-size:.78rem;"></i>
+        </span>
+        <input x-model.debounce.150ms="search"
+               type="search"
+               class="form-control"
+               placeholder="Filter tools…"
+               autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-sm ms-auto"
+              data-bs-toggle="modal" data-bs-target="#addToolModal">
+        <i class="bi bi-plus-lg me-1"></i>Add Tool
+      </button>
+    </div>
+
+    <!-- Category sections -->
+    {% for cat in tools.categories %}
+    <div id="cat-{{ cat.id }}"
+         class="tools-category mb-5"
+         x-show="!activecat || activecat === '{{ cat.id }}'">
+
+      <h6 class="tools-cat-heading">
+        {{ cat.name }}
+        <span class="badge fw-normal ms-1"
+              style="font-size:.62rem; vertical-align:middle; background:var(--bs-border-color); color:var(--dp-muted);">
+          {{ cat['items'] | length }}
+        </span>
+      </h6>
+
+      {% if cat['items'] %}
+      <div class="tools-grid">
+        {% for item in cat['items'] %}
+        <div class="tool-card"
+             style="--accent: {{ item.color or '#9ca3af' }};"
+             data-search="{{ (item.name ~ ' ' ~ (item.keywords or []) | join(' ')) | lower }}"
+             x-show="!search || $el.dataset.search.includes(search.toLowerCase())">
+          <div class="tool-card-accent"></div>
+          <div class="tool-card-inner">
+            <div class="tool-card-top">
+              <img class="tool-favicon"
+                   src="https://www.google.com/s2/favicons?domain_url={{ item.url }}&sz=32"
+                   width="20" height="20" alt=""
+                   loading="lazy"
+                   onerror="this.style.display='none'">
+              <a href="{{ item.url }}" target="_blank" rel="noopener"
+                 class="tool-card-name">{{ item.name }}</a>
+            </div>
+            {% if item.keywords %}
+            <div class="tool-card-tags">
+              {% for k in item.keywords %}
+              <span class="badge">{{ k }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <div class="tool-card-actions">
+              <a href="javascript:void(0)" role="button"
+                 class="tool-btn-edit"
+                 hx-get="/tools/item/edit?item_id={{ item.id }}&category_id={{ cat.id }}"
+                 hx-target="#toolEditModal .modal-content"
+                 hx-swap="innerHTML"
+                 hx-on:htmx:afterSwap="bootstrap.Modal.getOrCreateInstance(document.getElementById('toolEditModal')).show()"
+                 title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form hx-post="/tools/item/delete" hx-swap="none" class="m-0">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <input type="hidden" name="category_id" value="{{ cat.id }}">
+                <button class="tool-btn-delete" type="submit" title="Delete">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted small fst-italic" style="margin-top:-4px;">No tools in this category yet.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if not tools.categories %}
+    <div class="tools-empty">
+      <i class="bi bi-tools"></i>
+      <p class="small">No categories yet — create one to get started.</p>
+    </div>
+    {% endif %}
   </section>
 </div>
 
-<!-- Modal shell for editing tools -->
-<div class="modal fade" id="toolEditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+
+<!-- ─── Add Tool Modal ─────────────────────────── -->
+<div class="modal fade" id="addToolModal" tabindex="-1" aria-label="Add Tool" aria-modal="true">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <!-- Content loaded dynamically via HTMX -->
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title" style="font-size:.92rem; font-weight:700;">Add Tool</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form hx-post="/tools/item/add" hx-swap="none" id="addToolForm">
+          <div class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label small fw-semibold mb-1">Name</label>
+              <input name="name" class="form-control form-control-sm"
+                     placeholder="e.g. Linear" required>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label small fw-semibold mb-1">URL</label>
+              <input name="url" class="form-control form-control-sm"
+                     placeholder="https://…" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold mb-1">Category</label>
+              <select name="category_id" class="form-select form-select-sm" required>
+                <option value="" disabled selected>Choose a category…</option>
+                {% for cat in tools.categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold mb-1">Tags</label>
+              <input name="tags" class="form-control form-control-sm tagify-init"
+                     placeholder="Add tags…">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold mb-1">Accent color</label>
+              <div class="color-picker-wrap">
+                <input type="color" name="color" value="#9ca3af" class="color-native">
+                <span class="text-muted small">Decorative top stripe on the card</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Add Tool</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
+
+
+<!-- ─── Add Category Modal ────────────────────── -->
+<div class="modal fade" id="addCatModal" tabindex="-1" aria-label="Add Category" aria-modal="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title" style="font-size:.92rem; font-weight:700;">New Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form hx-post="/tools/category/add" hx-swap="none">
+          <label class="form-label small fw-semibold mb-1">Name</label>
+          <input name="name" class="form-control form-control-sm"
+                 placeholder="e.g. Design" required autofocus>
+          <div class="mt-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── Edit Tool Modal (HTMX-populated) ─────── -->
+<div class="modal fade" id="toolEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <!-- populated via HTMX -->
+    </div>
+  </div>
+</div>
+
+
+<script>
+  function initTagify(root) {
+    (root || document).querySelectorAll('.tagify-init:not([data-tagify-ready])').forEach(function(el) {
+      el.setAttribute('data-tagify-ready', '1');
+      new Tagify(el, {
+        originalInputValueFormat: function(vals) {
+          return vals.map(function(v) { return v.value; }).join(',');
+        },
+        dropdown: { enabled: 0 },
+        trim: true
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTagify();
+  });
+
+  document.addEventListener('htmx:afterSwap', function(e) {
+    var modal = e.target && e.target.closest && e.target.closest('#toolEditModal');
+    if (modal) initTagify(modal);
+  });
+</script>
 
 {% endblock %}
