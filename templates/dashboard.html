@@ -116,25 +116,18 @@
   .dp-add-submit:hover { color: var(--bs-body-color); }
 
   /* ── Add note ────────────────────────────────────────── */
+  .dp-add-note {
+    display: flex; gap: 6px; align-items: flex-end; margin-bottom: 12px;
+  }
   .dp-add-note textarea {
-    width: 100%;
-    padding: 6px 0; font-size: 0.84rem; line-height: 1.55;
+    flex: 1; min-width: 0;
+    padding: 5px 0; font-size: 0.84rem; line-height: 1.55;
     border: none; border-bottom: 1px solid var(--bs-border-color);
     border-radius: 0; background: transparent; color: var(--bs-body-color);
-    resize: none; outline: none; margin-bottom: 8px;
+    resize: none; outline: none; overflow: hidden;
     transition: border-color 0.12s;
   }
   .dp-add-note textarea:focus { border-bottom-color: var(--bs-body-color); }
-  .dp-add-note button {
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; border: 1px solid var(--bs-border-color);
-    border-radius: 3px; background: transparent; color: var(--dp-muted);
-    padding: 4px 12px; cursor: pointer; transition: all 0.12s;
-  }
-  .dp-add-note button:hover {
-    background: var(--bs-body-color); color: var(--bs-body-bg);
-    border-color: var(--bs-body-color);
-  }
 
   /* ── Item rows ───────────────────────────────────────── */
   .dp-row {
@@ -265,10 +258,12 @@
   <!-- Right: Notes -->
   <div>
     <span class="dp-label">Notes</span>
-    <form class="dp-add-note" hx-post="/note_item" hx-target="#notes-list" hx-swap="outerHTML" hx-on::after-swap="this.reset()">
+    <form class="dp-add-note" hx-post="/note_item" hx-target="#notes-list" hx-swap="outerHTML"
+          hx-on::after-swap="this.reset(); this.querySelector('textarea').style.height='auto'">
       <input type="hidden" name="date" value="{{ plan.date }}"/>
-      <textarea name="text" rows="2" placeholder="Add a note…"></textarea>
-      <button type="submit">Add note</button>
+      <textarea name="text" rows="1" placeholder="Add a note…"
+                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <button class="dp-add-submit" type="submit" title="Add note">+</button>
     </form>
     {% include "partials/dashboard_notes.html" %}
   </div>
