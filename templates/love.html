@@ -11,7 +11,7 @@
     font-size: 2.4rem;
     font-weight: 800;
     letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #e91e63 0%, #9c27b0 50%, #e91e63 100%);
+    background: linear-gradient(135deg, #e91e63 0%, #ee0d3a 50%, #e91e63 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -94,17 +94,22 @@
 </style>
 
 <div class="love-header">
-  <div class="love-title">Love ❤️</div>
+  <div class="love-title">Love Notes</div>
   <div class="love-subtitle">your collection of creative & mood todos</div>
 </div>
 
-<form class="love-add-form input-group input-group-sm"
+<form class="love-add-form"
       hx-post="/love/add"
       hx-target="#love-stickers"
       hx-swap="outerHTML"
       hx-on::after-swap="this.reset()">
-  <input name="text" class="form-control" placeholder="Add a love todo..." style="font-size: 0.95rem; padding: 8px 12px;"/>
-  <button type="submit" class="btn btn-primary px-4">Add ❤️</button>
+  <div class="mb-2">
+    <textarea name="text" class="form-control" placeholder="Add a love todo..." rows="3"
+              style="font-size: 0.95rem; resize: vertical; border-radius: 6px;"></textarea>
+  </div>
+  <div class="text-center">
+    <button type="submit" class="btn btn-danger px-4 fw-semibold">Submit</button>
+  </div>
 </form>
 
 {% include "partials/love_stickers.html" %}

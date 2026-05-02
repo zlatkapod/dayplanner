@@ -1,69 +1,114 @@
+
 {% extends "base.html" %}
 {% block content %}
 
-<div class="dp-header">
-  <div>
-    <div class="dp-brand text-uppercase">Topics</div>
-    <div class="dp-muted">Capture ideas to explore later. Add a topic and an optional category; items are grouped by category.</div>
+<style>
+  .notes-header {
+    text-align: center;
+    padding: 2rem 0 1.5rem;
+  }
+  .notes-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #f9a825 0%, #fbc02d 40%, #d66910 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.25rem;
+  }
+  .notes-subtitle {
+    font-size: 0.9rem;
+    color: var(--dp-muted);
+    letter-spacing: 0.05em;
+  }
+  .notes-add-form {
+    max-width: 560px;
+    margin: 0 auto 2.5rem;
+  }
+  .notes-stickers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 8px 4px 40px;
+  }
+  @media (max-width: 768px) {
+    .notes-stickers-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .notes-stickers-grid { grid-template-columns: 1fr; }
+  }
+  .notes-sticker {
+    border-radius: 4px;
+    padding: 18px 16px 14px;
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    cursor: default;
+  }
+  .notes-sticker:hover {
+    transform: rotate(0deg) scale(1.03) !important;
+    box-shadow: 4px 8px 22px rgba(0,0,0,0.16) !important;
+    z-index: 1;
+  }
+  .notes-sticker:hover .sticker-delete {
+    opacity: 1;
+  }
+  .sticker-delete {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: none;
+    background: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #888;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .sticker-delete:hover {
+    color: #c62828;
+  }
+  .notes-sticker-text {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #1a237e;
+    flex-grow: 1;
+    word-break: break-word;
+    white-space: pre-wrap;
+    font-weight: 500;
+  }
+  .notes-sticker-date {
+    font-size: 0.68rem;
+    color: #42a5f5;
+    margin-top: 10px;
+    font-style: italic;
+  }
+</style>
+
+<div class="notes-header">
+  <div class="notes-title">Notes</div>
+  <div class="notes-subtitle">capture anything worth keeping</div>
+</div>
+
+<form class="notes-add-form"
+      hx-post="/notes/add"
+      hx-target="#notes-stickers"
+      hx-swap="outerHTML"
+      hx-on::after-swap="this.reset()">
+  <div class="mb-2">
+    <textarea name="text" class="form-control" placeholder="Write a note..." rows="3"
+              style="font-size: 0.95rem; resize: vertical; border-radius: 6px;"></textarea>
   </div>
-</div>
+  <div class="text-center">
+    <button type="submit" class="btn btn-warning px-4 fw-semibold" style="color: #1a237e;">Submit</button>
+  </div>
+</form>
 
-<div class="dp-cols" style="grid-template-columns: 1fr 1.2fr;">
-  <!-- Add new topic -->
-  <section>
-    <h6 class="text-uppercase text-muted mb-2">Add Topic</h6>
-    <form class="mb-3" hx-post="/topics/add" hx-swap="none" hx-on::after-request="this.reset()">
-      <div class="row g-2">
-        <div class="col-12">
-          <input name="text" class="form-control form-control-sm" placeholder="Topic (e.g., Read about event loops)" required />
-        </div>
-        <div class="col-12 col-md-6">
-          <input name="category" class="form-control form-control-sm" placeholder="Category (e.g., Programming)" />
-        </div>
-        <div class="col-12 d-grid">
-          <button class="btn btn-primary btn-sm" type="submit">Add</button>
-        </div>
-      </div>
-    </form>
-  </section>
-
-  <!-- List topics grouped by category -->
-  <section>
-    <h6 class="text-uppercase text-muted mb-2">Topics by category</h6>
-
-    {% if categories|length == 0 %}
-      <div class="dp-slot">No topics yet. Add your first one above.</div>
-    {% endif %}
-
-    <div class="vstack gap-3">
-      {% for cat in categories %}
-        <div>
-          <div class="fw-semibold mb-2">{{ cat }}</div>
-          <div class="vstack gap-2">
-            {% for t in grouped[cat] %}
-              <div class="dp-slot">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                  <div class="me-auto">
-                    <div class="fw-semibold">{{ t.text }}</div>
-                    <div class="dp-muted small mt-1">Added on {{ t.created }}</div>
-                  </div>
-                  <div class="text-nowrap d-flex align-items-center gap-2">
-                    <button class="btn btn-outline-danger btn-sm"
-                            hx-post="/topics/delete"
-                            hx-vals='{"id": "{{ t.id }}"}'
-                            hx-swap="none"
-                            title="Delete">
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </section>
-</div>
+{% include "partials/notes_stickers.html" %}
 
 {% endblock %}

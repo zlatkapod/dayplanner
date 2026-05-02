@@ -910,60 +910,48 @@ def tools_page():
 # --- Topics routes ---
 
 @app.route("/topics", methods=["GET"])
-def topics_page():
+@app.route("/notes", methods=["GET"])
+def notes_page():
     tz = get_configured_tz()
     today = datetime.now(tz).date()
     sunrise, sunset = get_sun_times(today)
     is_dark = is_dark_mode(today, sunrise, sunset)
     data = load_topics()
     items = data.get("topics", [])
-    # group by category
-    grouped = {}
-    for t in items:
-        cat = (t.get("category") or "Unsorted").strip() or "Unsorted"
-        grouped.setdefault(cat, []).append(t)
-    # sort categories alphabetically, items by created desc then text
-    for cat, arr in grouped.items():
-        arr.sort(key=lambda x: (x.get("created", ""), x.get("text", "")))
-        arr.reverse()
-    categories = sorted(grouped.keys(), key=lambda s: s.lower())
-    return render_template("topics.html", grouped=grouped, categories=categories, is_dark=is_dark, today=date_str(today))
+    items_sorted = sorted(items, key=lambda x: x.get("created", ""), reverse=True)
+    return render_template("topics.html", items=items_sorted, is_dark=is_dark)
 
-@app.route("/topics/add", methods=["POST"]) 
-def topics_add():
+@app.route("/topics/add", methods=["POST"])
+@app.route("/notes/add", methods=["POST"])
+def notes_add():
     text = (request.form.get("text") or "").strip()
-    category = (request.form.get("category") or "Unsorted").strip() or "Unsorted"
     if not text:
-        return ("Missing topic text", 400)
+        return ("Missing text", 400)
     tz = get_configured_tz()
     created = datetime.now(tz).date().strftime("%Y-%m-%d")
     data = load_topics()
     data.setdefault("topics", []).append({
         "id": _new_id("tp"),
         "text": text,
-        "category": category,
+        "category": "Notes",
         "created": created,
     })
     save_topics(data)
-    resp = app.response_class("", status=204)
-    resp.headers["HX-Redirect"] = url_for("topics_page")
-    return resp
+    items_sorted = sorted(data["topics"], key=lambda x: x.get("created", ""), reverse=True)
+    return render_template("partials/notes_stickers.html", items=items_sorted)
 
-@app.route("/topics/delete", methods=["POST"]) 
-def topics_delete():
+@app.route("/topics/delete", methods=["POST"])
+@app.route("/notes/delete", methods=["POST"])
+def notes_delete():
     tid = (request.form.get("id") or "").strip()
     if not tid:
         return ("Missing id", 400)
     data = load_topics()
     arr = data.get("topics", [])
-    new_arr = [t for t in arr if t.get("id") != tid]
-    if len(new_arr) == len(arr):
-        return ("Not found", 404)
-    data["topics"] = new_arr
+    data["topics"] = [t for t in arr if t.get("id") != tid]
     save_topics(data)
-    resp = app.response_class("", status=204)
-    resp.headers["HX-Redirect"] = url_for("topics_page")
-    return resp
+    items_sorted = sorted(data["topics"], key=lambda x: x.get("created", ""), reverse=True)
+    return render_template("partials/notes_stickers.html", items=items_sorted)
 
 # --- WordCount routes ---
 

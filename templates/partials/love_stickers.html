@@ -1,12 +1,12 @@
 
 {% set palette = [
-  {'bg': '#fff9c4', 'shadow': 'rgba(255,235,59,0.35)'},
-  {'bg': '#fce4ec', 'shadow': 'rgba(244,143,177,0.35)'},
-  {'bg': '#e3f2fd', 'shadow': 'rgba(100,181,246,0.35)'},
-  {'bg': '#e8f5e9', 'shadow': 'rgba(129,199,132,0.35)'},
-  {'bg': '#f3e5f5', 'shadow': 'rgba(186,104,200,0.35)'},
-  {'bg': '#fff3e0', 'shadow': 'rgba(255,183,77,0.35)'},
-  {'bg': '#e0f7fa', 'shadow': 'rgba(77,208,225,0.35)'}
+  {'bg': '#ffcdd2', 'shadow': 'rgba(229,115,115,0.35)', 'text': '#3b1a1a'},
+  {'bg': '#f8bbd9', 'shadow': 'rgba(240,98,146,0.35)', 'text': '#3b1a2d'},
+  {'bg': '#ffb3ba', 'shadow': 'rgba(229,57,53,0.30)', 'text': '#3b1a1a'},
+  {'bg': '#fce4ec', 'shadow': 'rgba(244,143,177,0.35)', 'text': '#3b1a2d'},
+  {'bg': '#ef9a9a', 'shadow': 'rgba(211,47,47,0.30)', 'text': '#3b1010'},
+  {'bg': '#f48fb1', 'shadow': 'rgba(216,27,96,0.30)', 'text': '#3b0a22'},
+  {'bg': '#ff8a80', 'shadow': 'rgba(229,57,53,0.30)', 'text': '#3b0f0f'}
 ] %}
 {% set rotations = ['-2deg','1.2deg','-0.8deg','2deg','-1.5deg','0.6deg','1.8deg'] %}
 
@@ -24,7 +24,7 @@
             hx-swap="outerHTML"
             title="Remove">×</button>
           <div class="sticker-heart">❤️</div>
-          <div class="sticker-text">{{ item.text }}</div>
+          <div class="sticker-text" style="color: {{ palette[ci].text }};">{{ item.text }}</div>
           <div class="sticker-date">{{ item.created }}</div>
         </div>
       {% endfor %}
