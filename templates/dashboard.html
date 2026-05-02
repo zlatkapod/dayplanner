@@ -2,16 +2,88 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+  .day-image-slot {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .day-image-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    box-sizing: border-box;
+  }
+  .day-image-empty:hover {
+    border-color: var(--bs-primary);
+    background: rgba(13,110,253,0.04);
+  }
+  .day-img-plus {
+    font-size: 1.4rem;
+    color: var(--dp-muted);
+    line-height: 1;
+    user-select: none;
+  }
+  .day-img-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .day-img-del-form {
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .day-image-slot:hover .day-img-del-form {
+    opacity: 1;
+  }
+  .day-img-del-btn {
+    border: none;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border-radius: 0 10px 0 8px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .day-img-del-btn:hover { background: rgba(200,0,0,0.8); }
+</style>
+
 <div class="dp-header">
   <div class="d-flex justify-content-between align-items-center w-100">
     <div>
-      <div style="font-size: 1.6rem; font-weight: 700; color: #4a4a4a;">{{ plan.date }}</div>
+      <div style="font-size: 3.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; color: #1a1a1a; text-transform: uppercase;">{{ day.strftime('%-d %b') }}</div>
       <nav class="dp-nav d-flex align-items-center gap-2 mt-1" aria-label="Day navigation">
         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
         <span class="dp-muted">Today</span>
         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=next_day.strftime('%Y-%m-%d')) }}">{{ next_day.strftime('%a %d %b') }} &rarr;</a>
       </nav>
     </div>
+
+    <div class="d-flex gap-2 align-items-center">
+      {% with slot=1 %}{% include "partials/day_image_slot.html" %}{% endwith %}
+      {% with slot=2 %}{% include "partials/day_image_slot.html" %}{% endwith %}
+      {% with slot=3 %}{% include "partials/day_image_slot.html" %}{% endwith %}
+    </div>
+
     {% if weather %}
     <div class="d-flex gap-3 text-center">
       {% for w in weather %}

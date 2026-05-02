@@ -3,7 +3,8 @@ from __future__ import annotations
 import os, json, requests
 from datetime import datetime, timedelta, timezone, date as date_cls, time as time_cls
 from pathlib import Path
-from flask import Flask, render_template, request, redirect, url_for, abort
+from flask import Flask, render_template, request, redirect, url_for, abort, send_from_directory
+from werkzeug.utils import secure_filename
 import logging
 
 from zoneinfo import ZoneInfo
@@ -440,7 +441,7 @@ def dashboard():
     else:
         upcoming_blocks = [b for b in plan.get("blocks", []) if b.get("activity")]
     weather = get_weather(day)
-    return render_template("dashboard.html", plan=plan, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark, upcoming_blocks=upcoming_blocks, weather=weather)
+    return render_template("dashboard.html", plan=plan, day=day, prev_day=prev_day, next_day=next_day, sunrise=sunrise, sunset=sunset, is_dark=is_dark, upcoming_blocks=upcoming_blocks, weather=weather)
 
 @app.route("/dayplanner", methods=["GET"])
 def index():
@@ -602,6 +603,66 @@ def reorder_all_todos():
     save_plan(day, plan)
     template = "partials/dashboard_todos.html" if request.form.get("source") == "dashboard" else "partials/todos.html"
     return render_template(template, plan=plan)
+
+_ALLOWED_IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+
+@app.route("/day_image/<date_param>/<int:slot>", methods=["GET"])
+def serve_day_image(date_param, slot):
+    try:
+        day = datetime.strptime(date_param, "%Y-%m-%d").date()
+    except Exception:
+        abort(400)
+    plan = load_plan(day)
+    filename = plan.get(f"day_image_{slot}")
+    if not filename:
+        abort(404)
+    img_dir = DATA_DIR / "images" / date_param
+    return send_from_directory(str(img_dir.resolve()), filename)
+
+@app.route("/day_image/upload", methods=["POST"])
+def upload_day_image():
+    date_param = (request.form.get("date") or "").strip()
+    slot = (request.form.get("slot") or "").strip()
+    if not date_param or slot not in ("1", "2", "3"):
+        abort(400)
+    try:
+        day = datetime.strptime(date_param, "%Y-%m-%d").date()
+    except Exception:
+        abort(400)
+    file = request.files.get("image")
+    if not file or not file.filename:
+        abort(400)
+    ext = Path(secure_filename(file.filename)).suffix.lower()
+    if ext not in _ALLOWED_IMAGE_EXTS:
+        ext = ".jpg"
+    img_dir = DATA_DIR / "images" / date_param
+    img_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"slot{slot}{ext}"
+    file.save(str(img_dir / filename))
+    plan = load_plan(day)
+    plan[f"day_image_{slot}"] = filename
+    save_plan(day, plan)
+    return render_template("partials/day_image_slot.html", plan=plan, slot=int(slot))
+
+@app.route("/day_image/delete", methods=["POST"])
+def delete_day_image():
+    date_param = (request.form.get("date") or "").strip()
+    slot = (request.form.get("slot") or "").strip()
+    if not date_param or slot not in ("1", "2", "3"):
+        abort(400)
+    try:
+        day = datetime.strptime(date_param, "%Y-%m-%d").date()
+    except Exception:
+        abort(400)
+    plan = load_plan(day)
+    filename = plan.get(f"day_image_{slot}")
+    if filename:
+        img_path = DATA_DIR / "images" / date_param / filename
+        if img_path.exists():
+            img_path.unlink()
+        plan[f"day_image_{slot}"] = None
+        save_plan(day, plan)
+    return render_template("partials/day_image_slot.html", plan=plan, slot=int(slot))
 
 @app.route("/note", methods=["POST"])
 def save_note():

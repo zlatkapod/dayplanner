@@ -1,0 +1,32 @@
+
+{% set img_key = 'day_image_' ~ slot %}
+{% set img_file = plan.get(img_key) %}
+{% set form_id = 'day-img-form-' ~ slot ~ '-' ~ plan.date %}
+{% set file_id = 'day-img-file-' ~ slot ~ '-' ~ plan.date %}
+
+<div id="day-image-slot-{{ slot }}" class="day-image-slot">
+  {% if img_file %}
+    <img src="/day_image/{{ plan.date }}/{{ slot }}" class="day-img-thumb" alt="Mood image {{ slot }}"/>
+    <form hx-post="/day_image/delete" hx-target="#day-image-slot-{{ slot }}" hx-swap="outerHTML" class="day-img-del-form m-0">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <input type="hidden" name="slot" value="{{ slot }}"/>
+      <button type="submit" class="day-img-del-btn" title="Remove">×</button>
+    </form>
+  {% else %}
+    <form id="{{ form_id }}"
+          hx-post="/day_image/upload"
+          hx-target="#day-image-slot-{{ slot }}"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data"
+          class="m-0 w-100 h-100">
+      <input type="hidden" name="date" value="{{ plan.date }}"/>
+      <input type="hidden" name="slot" value="{{ slot }}"/>
+      <label class="day-image-empty" title="Add mood image" for="{{ file_id }}">
+        <input type="file" id="{{ file_id }}" name="image" accept="image/*"
+               style="display:none;"
+               onchange="document.getElementById('{{ form_id }}').requestSubmit()"/>
+        <span class="day-img-plus">+</span>
+      </label>
+    </form>
+  {% endif %}
+</div>
