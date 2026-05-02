@@ -65,12 +65,13 @@
     justify-content: center;
   }
   .day-img-del-btn:hover { background: rgba(200,0,0,0.8); }
+  .theme-dark .text-muted { color: var(--dp-muted) !important; }
 </style>
 
 <div class="dp-header">
   <div class="d-flex justify-content-between align-items-center w-100">
     <div>
-      <div style="font-size: 3.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; color: #1a1a1a; text-transform: uppercase;">{{ day.strftime('%-d %b') }}</div>
+      <div style="font-size: 3.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; color: var(--bs-body-color); text-transform: uppercase;">{{ day.strftime('%-d %b') }}</div>
       <nav class="dp-nav d-flex align-items-center gap-2 mt-1" aria-label="Day navigation">
         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard', date=prev_day.strftime('%Y-%m-%d')) }}">&larr; {{ prev_day.strftime('%a %d %b') }}</a>
         <span class="dp-muted">Today</span>

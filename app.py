@@ -787,9 +787,12 @@ def reorder_all_love_todos():
 
 @app.route("/love", methods=["GET"])
 def love_page():
+    today = datetime.now(get_configured_tz()).date()
+    sunrise, sunset = get_sun_times(today)
+    is_dark = is_dark_mode(today, sunrise, sunset)
     data = load_love_todos()
     items = data.get("items", [])
-    return render_template("love.html", items=items)
+    return render_template("love.html", items=items, is_dark=is_dark)
 
 @app.route("/love/add", methods=["POST"])
 def add_love_global():
