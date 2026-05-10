@@ -14,6 +14,20 @@ services:
       - LOG_LEVEL=INFO
       - TZ=${TZ:-Europe/Amsterdam}
     restart: unless-stopped
+
+  highlight:
+    build: .
+    image: dayplanner:latest
+    container_name: dayplanner-highlight
+    ports:
+      - "8384:8384"
+    volumes:
+      - dayplanner_data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      - TZ=${TZ:-Europe/Amsterdam}
+    command: uvicorn highlight_service:app --host 0.0.0.0 --port 8384
+    restart: unless-stopped
   backup:
     build:
       context: .

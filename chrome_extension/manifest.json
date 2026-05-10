@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Day Planner Highlighter",
+  "version": "1.0",
+  "description": "Capture selected text to your daily notes",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost:8384/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Capture highlight"
+  }
+}
