@@ -3,10 +3,21 @@
   "name": "Day Planner Highlighter",
   "version": "1.0",
   "description": "Capture selected text to your daily notes",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "contextMenus", "notifications"],
   "host_permissions": ["http://localhost:8384/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Capture highlight"
+    "default_title": "Capture highlight",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   }
 }
